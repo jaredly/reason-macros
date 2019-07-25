@@ -1,0 +1,27 @@
+{
+  "name": "js_deep_ppx",
+  "version": "0.0.0-dont-publish",
+  "private": true,
+  "scripts": {
+    "start": "bsb -make-world -backend native",
+    "js": "bsb -make-world -backend js",
+    "check": "zsh -c './lib/bs/js/js_deep.native <(yarn -s bsrefmt --print binary --parse re < tests/Tests.re) >(yarn -s bsrefmt --parse binary)'",
+    "postinstall": "bsb -make-world -backend js; cp lib/bs/js/js_deep.native ./ppx",
+    "clean": "bsb -clean-world",
+    "test": "./lib/bs/native/tests.native",
+    "watch": "bsb -make-world -backend native -w"
+  },
+  "keywords": [
+    "Reason"
+  ],
+  "repository": {
+    "url": "jaredly/js_deep_ppx",
+    "type": "git"
+  },
+  "description": "js_deep ppx for deep object manipulation and cloning in reason",
+  "author": "Jared Forsyth",
+  "license": "ISC",
+  "dependencies": {
+    "bsb-native": "^4.0.1100"
+  }
+}

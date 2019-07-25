@@ -1,0 +1,24 @@
+{
+  "name": "js_deep",
+  "bsc-flags": "-g",
+  "ocaml-flags": ["-g", "-bin-annot"],
+  "warnings": {
+    "number": "-6+7-26-27-32..40-28-44-45",
+    "error": "+8"
+  },
+  "sources": [
+    {"dir": "src", "type": "ppx"},
+    {"dir": "tests", "type": "dev", "subdirs": true, "ppx": ["Macros"], "backend": "js"}
+  ],
+  "ocaml-dependencies": ["compiler-libs", "unix", "bigarray", "str"],
+  "public": ["Main"],
+  "entries": [{
+    "backend": "js",
+    "main-module": "Tests"
+  }, {
+    "backend": "native",
+    "type": "ppx",
+    "main-module": "Macros"
+  }],
+  "refmt": 3
+}
