@@ -8,8 +8,10 @@
 //   - could also do `some$eval{uppercase(name)}` or something
 // - for other identifiers, the `eval__` prefix will do the same thing.
 
-let%macro.toplevel ionicon = (name: capIdent, iconName: capIdent) => {
+let%macro.toplevel ionicon = (name: capIdent, iconName: capIdent, small: ident) => {
   [%str module Eval__name = {
+    let name = "$eval{iconName}";
+    let eval__small = "awesome$eval{small}";
     [@bs.module] [@react.component]
     external make:
       (
@@ -18,10 +20,10 @@ let%macro.toplevel ionicon = (name: capIdent, iconName: capIdent) => {
         ~color: string=?,
         ~onClick: 'event => unit=?
       ) =>
-      React.element =
+      string =
       "react-ionicons/lib/$eval{iconName}";
   }];
 };
 
-[%ionicon (Link, IosLink)];
-[%ionicon (Camera, MdCamera)];
+[%%ionicon (Link, IosLink, hi)];
+[%%ionicon (Camera, MdCamera, ho)];

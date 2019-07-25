@@ -5,7 +5,8 @@
   "scripts": {
     "start": "bsb -make-world -backend native",
     "js": "bsb -make-world -backend js",
-    "check": "zsh -c './lib/bs/js/js_deep.native <(yarn -s bsrefmt --print binary --parse re < tests/Tests.re) >(yarn -s bsrefmt --parse binary)'",
+    "check": "zsh -c './lib/bs/js/macros.native <(yarn -s bsrefmt --print binary --parse re < tests/Icons.re) >(yarn -s bsrefmt --parse binary)'",
+    "checkm": "zsh -c './lib/bs/js/macros.native <(yarn -s bsrefmt --print binary --parse re < tests/Monads.re) >(yarn -s bsrefmt --parse binary)'",
     "postinstall": "bsb -make-world -backend js; cp lib/bs/js/js_deep.native ./ppx",
     "clean": "bsb -clean-world",
     "test": "./lib/bs/native/tests.native",

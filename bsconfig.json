@@ -12,6 +12,10 @@
   ],
   "ocaml-dependencies": ["compiler-libs", "unix", "bigarray", "str"],
   "public": ["Main"],
+  "package-specs": [{
+    "module": "commonjs",
+    "in-source": true
+  }],
   "entries": [{
     "backend": "js",
     "main-module": "Tests"
