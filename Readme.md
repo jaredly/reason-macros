@@ -192,7 +192,7 @@ if (a != b) {
 
 ## Basic form
 
-Types:
+MacroTypes:
 - pattern (generic pattern, can do a switch on it)
 - expression (generic epxression, can switch probably)
 
