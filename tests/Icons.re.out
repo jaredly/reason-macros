@@ -1,6 +1,6 @@
 module Link = {
-  let name = "$eval{iconName}";
-  let hi = "awesome$eval{small}";
+  let name = "IosLink";
+  let hi = "awesomehi";
   [@bs.module] [@react.component]
   external make:
     (
@@ -13,8 +13,8 @@ module Link = {
     "react-ionicons/lib/IosLink";
 };
 module Camera = {
-  let name = "$eval{iconName}";
-  let ho = "awesome$eval{small}";
+  let name = "MdCamera";
+  let ho = "awesomeho";
   [@bs.module] [@react.component]
   external make:
     (

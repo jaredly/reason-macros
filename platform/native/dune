@@ -1,0 +1,4 @@
+(library
+  (name platform_native)
+  (implements platform)
+  (libraries str))

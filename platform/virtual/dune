@@ -1,0 +1,4 @@
+(library
+  (name platform)
+  (virtual_modules platform)
+)

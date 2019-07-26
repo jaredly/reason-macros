@@ -101,6 +101,68 @@ let endsWith = (s, suffix) => {
   }
 };
 
+let test = (~only=?, overwrite) => {
+  let failed = ref(0);
+  Fs.readDirectory("./tests") |> List.iter(fname => {
+    let full = "./tests/" ++ fname;
+    if (endsWith(fname, ".re") && {
+      switch only {
+        | None => true
+        | Some(name) => name == fname
+      }
+    }) {
+      let input = Fs.readFile(full);
+      switch input {
+        | None => ()
+        | Some(input) => {
+          let ast = parse(input);
+
+          // do the actual transform.
+          let mapper = Macros.macroMapper([]);
+          let transformed = mapper.structure(mapper, ast);
+
+          let output = (print(transformed));
+
+
+          switch (Fs.readFile(full ++ ".out")) {
+            | None => Fs.writeFile(full ++ ".out", output) |> ignore
+            | Some(current) => {
+              if (String.trim(current) != String.trim(output)) {
+                if (overwrite) {
+                  Fs.writeFile(full ++ ".out", output) |> ignore;
+                } else {
+                  print_endline("Failure! Output for " ++ full ++ " was different!");
+                  Fs.writeFile(full ++ ".out.new", output) |> ignore;
+                }
+                failed := failed^ + 1;
+              } else {
+                print_endline(full ++ " matched")
+              }
+            }
+          }
+
+        }
+      }
+    }
+  });
+  if (overwrite) {
+    if (failed^ > 0) {
+      print_endline("Updated " ++ string_of_int(failed^))
+    } else {
+      print_endline("No changes");
+    }
+    exit(0)
+  } else {
+    if (failed^ > 0) {
+      print_endline("Failures: " ++ string_of_int(failed^))
+      exit(1)
+    } else {
+      print_endline("All clear!");
+      exit(0)
+    }
+  }
+};
+
 switch (Sys.argv) {
   | [|_|] => {
     let input = Fs.readStdin();
@@ -114,47 +176,16 @@ switch (Sys.argv) {
   print_endline(print(transformed));
   }
   | [|_, "test"|] => {
-    let failed = ref(0);
-    Fs.readDirectory("./tests") |> List.iter(fname => {
-      let full = "./tests/" ++ fname;
-      if (endsWith(fname, ".re")) {
-        let input = Fs.readFile(full);
-        switch input {
-          | None => ()
-          | Some(input) => {
-            let ast = parse(input);
-
-            // do the actual transform.
-            let mapper = Macros.macroMapper([]);
-            let transformed = mapper.structure(mapper, ast);
-
-            let output = (print(transformed));
-
-
-            switch (Fs.readFile(full ++ ".out")) {
-              | None => Fs.writeFile(full ++ ".out", output) |> ignore
-              | Some(current) => {
-                if (current != output) {
-                  print_endline("Failure! Output for " ++ full ++ " was different!");
-                  Fs.writeFile(full ++ ".out.new", output) |> ignore;
-                  failed := failed^ + 1;
-                } else {
-                  print_endline(full ++ " matched")
-                }
-              }
-            }
-
-          }
-        }
-      }
-    });
-    if (failed^ > 0) {
-      print_endline("Failures: " ++ string_of_int(failed^))
-      exit(1)
-    } else {
-      print_endline("All clear!");
-      exit(0)
-    }
+    test(false)
   }
-  |_ => print_endline("Usage: macros [test]")
+  | [|_, "test", "-u"|] => {
+    test(true)
+  }
+  | [|_, "test", name|] => {
+    test(~only=name, false)
+  }
+  | [|_, "test", name, "-u"|] => {
+    test(~only=name, true)
+  }
+  |_ => print_endline("Usage: macros [test -u]")
 }

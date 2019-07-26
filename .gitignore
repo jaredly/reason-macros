@@ -3,3 +3,5 @@ lib
 .merlin
 /ppx
 _esy
+*.new
+macros.install

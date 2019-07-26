@@ -1,0 +1,4 @@
+(library
+  (name platform_js)
+  (libraries js_of_ocaml)
+  (implements platform))
