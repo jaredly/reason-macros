@@ -1,4 +1,7 @@
 
+open Migrate_parsetree;
+open OCaml_407.Ast;
+
 open Parsetree;
 open Longident;
 open MacroTypes;
@@ -56,6 +59,19 @@ let bindLocal = (pattern, expr): locals => switch pattern {
       | _ => fail2(expr.pexp_loc, "Argument must be a (possibly namespaced) identifier",
       typloc, "Declared here"
       )
+    }
+    | "bool" => switch expr.pexp_desc {
+      | Pexp_construct({txt: Lident("true")}, None) => [(binding_name, (expr.pexp_loc, `BoolConst(true)))]
+      | Pexp_construct({txt: Lident("false")}, None) => [(binding_name, (expr.pexp_loc, `BoolConst(false)))]
+      | _ => fail2(expr.pexp_loc, "Argument must be a boolean literal", typloc, "Declared here")
+    }
+    | "int" => switch expr.pexp_desc {
+      | Pexp_constant(Pconst_integer(int, None)) => [(binding_name, (expr.pexp_loc, `IntConst(int_of_string(int))))]
+      | _ => fail2(expr.pexp_loc, "Argument must be an integer literal", typloc, "Declared here")
+    }
+    | "string" => switch expr.pexp_desc {
+      | Pexp_constant(Pconst_string(string, fence)) => [(binding_name, (expr.pexp_loc, `StringConst(string)))]
+      | _ => fail2(expr.pexp_loc, "Argument must be a string literal", typloc, "Declared here")
     }
     | "ident" => switch expr.pexp_desc {
       | Pexp_ident({txt: Lident(name)}) => [(binding_name, (expr.pexp_loc, `Ident(name)))]

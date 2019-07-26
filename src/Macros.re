@@ -1,4 +1,7 @@
 
+open Migrate_parsetree;
+open OCaml_407.Ast;
+
 
 open MacroTypes;
 open Parsetree;
@@ -28,5 +31,3 @@ let rec macroMapper = collected =>
     }
   }
   ;
-
-let () = Ast_mapper.run_main(_argv => macroMapper([]));

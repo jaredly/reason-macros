@@ -230,7 +230,15 @@ Forms:
 - `%macro.try`
   - `let%macro.try a = (expr: expression, cases: rest(case)) => Js.Promise.catch(expr, err => [%construct.switch (err, cases)])`
 
-Constructors:
+Eval functions:
+- `[%eval switch_(expr, cases)]`
+- `[%eval map(value, item => { /* treated the same as a macro body */ })]` // if the body is a `[%str]`, then will make multiple strs. Otherwise, will make a list literal probably?
+- `[%eval foreach(value, item => {})]` // if in a structure context, the body must be `%str`. Otherwise, will be exp_sequence'd together
+- `let%eval something = otherthing` // if it's a constant, will be processed as such. otherwise, will be a plain expr
+- `if%eval (x == 2) {}`
+- `for%eval (x in 0 to 5) {}` // if the body is a `[%str]`, then it will make structured items. otherwise, will be `exp_sequence`d together.
+
+
 - `[%construct.switch (expr, cases)]` cases must be a `list(case)`, expr must be some kind of `expression`
 - `[%construct.let (pattern, expr, continuation)]`
 - `[%construct.let.typed (pattern, typ, expr, continuation)]`

@@ -1,4 +1,7 @@
 
+open Migrate_parsetree;
+open OCaml_407.Ast;
+
 open MacroTypes;
 open Parsetree;
 open Longident;
@@ -7,13 +10,13 @@ open Longident;
 
 let rec getStringAttribute = (attributes, name) => switch attributes {
   | [] => None
-  | [({Location.txt}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_constant(Const_string(v, _))}, _)}])), ..._] when txt == name => Some(v)
+  | [({Location.txt}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_constant(Pconst_string(v, _))}, _)}])), ..._] when txt == name => Some(v)
   | [_, ...rest] => getStringAttribute(rest, name)
 };
 
 let rec collectArgs = expr => {
   switch expr.pexp_desc {
-    | Pexp_fun("", None, pattern, body) => {
+    | Pexp_fun(Nolabel, None, pattern, body) => {
       let (inner, body) = collectArgs(body);
       ([pattern, ...inner], body)
     }
@@ -73,9 +76,9 @@ let processMacro = (txt, payload, attributes) => {
       {
         pvb_pat,
         pvb_expr: {
-          pexp_desc: Pexp_fun("", None, patternName, {
-            pexp_desc: Pexp_fun("", None, valueName, {
-              pexp_desc: Pexp_fun("", None, continueName, body)
+          pexp_desc: Pexp_fun(Nolabel, None, patternName, {
+            pexp_desc: Pexp_fun(Nolabel, None, valueName, {
+              pexp_desc: Pexp_fun(Nolabel, None, continueName, body)
             })
           })
         },

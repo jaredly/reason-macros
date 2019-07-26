@@ -1,4 +1,7 @@
 
+open Migrate_parsetree;
+open OCaml_407.Ast;
+
 open MacroTypes;
 open Parsetree;
 open Longident;
@@ -31,7 +34,7 @@ let regexpReplace = (rx, string, fn) => {
   loop(string)
 };
 
-let evalString = (locals, string, loc) => {
+let evalString = (locals: locals, string, loc) => {
   regexpReplace(strrx, string, (current) => {
     let text = Str.matched_group(1, current);
     switch (List.assoc(text, locals) |> snd) {
@@ -39,6 +42,10 @@ let evalString = (locals, string, loc) => {
       | `Ident(name) => name
       | `CapIdent(name) => name
       | `LongIdent(lident) | `LongCapIdent(lident) => String.concat(".", Longident.flatten(lident))
+      | `BoolConst(true) => "true"
+      | `BoolConst(false) => "false"
+      | `IntConst(int) => string_of_int(int)
+      | `StringConst(string) => string
       | _ => fail(loc, "String interpolation only currently supported for ident and capIdent MacroTypes")
     }
   })
@@ -145,10 +152,10 @@ let rec evalMapper = locals => {
         } else {
           expr
         }
-      | Pexp_constant(Const_string(string, fence)) => {
+      | Pexp_constant(Pconst_string(string, fence)) => {
         let newString = evalString(locals, string, expr.pexp_loc);
         if (newString != string) {
-          {...expr, pexp_desc: Pexp_constant(Const_string(newString, fence))}
+          {...expr, pexp_desc: Pexp_constant(Pconst_string(newString, fence))}
         } else {
           expr
         }
@@ -178,10 +185,10 @@ let rec evalMapper = locals => {
         };
         Ast_mapper.default_mapper.pat(mapper, pat)
       }
-      | Ppat_constant(Const_string(string, fence)) => {
+      | Ppat_constant(Pconst_string(string, fence)) => {
         let newString = evalString(locals, string, pat.ppat_loc);
         if (newString != string) {
-          {...pat, ppat_desc: Ppat_constant(Const_string(newString, fence))}
+          {...pat, ppat_desc: Ppat_constant(Pconst_string(newString, fence))}
         } else {
           pat
         }

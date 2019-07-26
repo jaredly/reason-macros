@@ -1,0 +1,3 @@
+(executable 
+  (name JsMain)
+  (libraries reason macros))

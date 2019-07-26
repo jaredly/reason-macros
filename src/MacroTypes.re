@@ -1,12 +1,18 @@
 
+open Migrate_parsetree;
+open OCaml_407.Ast;
+
 open Parsetree;
-open Longident;
 
 type valueType = [
   | `Expr(expression)
   | `Pattern(pattern)
   | `LongCapIdent(Longident.t)
   | `LongIdent(Longident.t)
+  | `StringConst(string)
+  | `BoolConst(bool)
+  | `IntConst(int)
+  | `FloatConst(float)
   | `CapIdent(string)
   | `Ident(string)
 ];

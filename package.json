@@ -1,7 +1,6 @@
 {
-  "name": "js_deep_ppx",
-  "version": "0.0.0-dont-publish",
-  "private": true,
+  "name": "macros",
+  "version": "1.0.0",
   "scripts": {
     "start": "bsb -make-world -backend native",
     "js": "bsb -make-world -backend js",
@@ -16,13 +15,21 @@
     "Reason"
   ],
   "repository": {
-    "url": "jaredly/js_deep_ppx",
+    "url": "jaredly/macros",
     "type": "git"
   },
-  "description": "js_deep ppx for deep object manipulation and cloning in reason",
+  "description": "Macros for Reason/OCaml!",
   "author": "Jared Forsyth",
   "license": "ISC",
   "dependencies": {
-    "bsb-native": "^4.0.1100"
+    "@opam/dune": "*",
+    "@opam/ocaml-migrate-parsetree": "*",
+    "@opam/js_of_ocaml-compiler": "*",
+    "belt": "jaredly/belt",
+    "@esy-ocaml/reason": "*",
+    "ocaml": "4.07"
+  },
+  "esy": {
+    "build": "dune build -p #{self.name}"
   }
 }
