@@ -1,3 +1,4 @@
 (executable 
   (name JsMain)
+  (modes js)
   (libraries reason macros))
