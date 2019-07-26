@@ -1,0 +1,10 @@
+{
+  let someIdent = 2;
+  let m = Js.log(someIdent);
+  switch (None) {
+  | Some(47) => None
+
+  | Some(_) => None
+  | _ => None
+  };
+};

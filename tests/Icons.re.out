@@ -1,0 +1,28 @@
+module Link = {
+  let name = "$eval{iconName}";
+  let hi = "awesome$eval{small}";
+  [@bs.module] [@react.component]
+  external make:
+    (
+      ~className: string=?,
+      ~fontSize: string=?,
+      ~color: string=?,
+      ~onClick: 'event => unit=?
+    ) =>
+    string =
+    "react-ionicons/lib/IosLink";
+};
+module Camera = {
+  let name = "$eval{iconName}";
+  let ho = "awesome$eval{small}";
+  [@bs.module] [@react.component]
+  external make:
+    (
+      ~className: string=?,
+      ~fontSize: string=?,
+      ~color: string=?,
+      ~onClick: 'event => unit=?
+    ) =>
+    string =
+    "react-ionicons/lib/MdCamera";
+};

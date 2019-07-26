@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "bsb -make-world -backend native",
-    "js": "bsb -make-world -backend js",
+    "js": "dune build js/JsMain.bc.js",
+    "cp-js": "cp _esy/default/build/default/js/JsMain.bc.js publish-js/index.js",
     "check": "zsh -c './lib/bs/js/macros.native <(yarn -s bsrefmt --print binary --parse re < tests/Icons.re) >(yarn -s bsrefmt --parse binary)'",
     "checkm": "zsh -c './lib/bs/js/macros.native <(yarn -s bsrefmt --print binary --parse re < tests/Monads.re) >(yarn -s bsrefmt --parse binary)'",
     "postinstall": "bsb -make-world -backend js; cp lib/bs/js/macros.native ./ppx",
@@ -25,6 +26,7 @@
     "@opam/dune": "*",
     "@opam/ocaml-migrate-parsetree": "*",
     "@opam/js_of_ocaml-compiler": "*",
+    "@opam/js_of_ocaml": "*",
     "belt": "jaredly/belt",
     "@esy-ocaml/reason": "*",
     "ocaml": "4.07"

@@ -3,31 +3,35 @@ open Migrate_parsetree;
 open OCaml_407.Ast;
 
 
-open MacroTypes;
 open Parsetree;
-open Longident;
 
 open Ast_mapper;
 
-let rec macroMapper = collected =>
-  Parsetree.{
-    ...Ast_mapper.default_mapper,
-    structure: (mapper, str) => {
-      let (items, _macros, _apply) = str |> List.fold_left(
-        ((items, macros, apply), item) => {
-          switch (item.pstr_desc) {
-            | Pstr_extension(({txt, loc}, payload), attributes) => {
-              switch (SetupMacro.processMacro(txt, payload, attributes)) {
-                | None => (apply.structure(apply, [item]) @ items, macros, apply)
-                | Some(macro) => (items, [macro, ...macros], Eval.applyMapper([macro, ...macros]))
-              }
-            }
-            | _ => (apply.structure(apply, [item]) @ items, macros, apply)
+let collect = (str, collected) => {
+  let (items, macros, _apply) = str |> List.fold_left(
+    ((items, macros, apply), item) => {
+      switch (item.pstr_desc) {
+        | Pstr_extension(({txt, loc: _}, payload), attributes) => {
+          switch (SetupMacro.processMacro(txt, payload, attributes)) {
+            | None => (apply.structure(apply, [item]) @ items, macros, apply)
+            | Some(macro) => (items, [macro, ...macros], Eval.applyMapper([macro, ...macros]))
           }
-        },
-        ([], collected, Ast_mapper.default_mapper)
-      );
-      items |> List.rev
+        }
+        | _ => (apply.structure(apply, [item]) @ items, macros, apply)
+      }
+    },
+    ([], collected, collected == [] ? Ast_mapper.default_mapper : Eval.applyMapper(collected))
+  );
+  let items = items |> List.rev;
+  (items, macros)
+};
+
+let macroMapper = collected =>
+  {
+    ...Ast_mapper.default_mapper,
+    structure: (_mapper, str) => {
+      let (items, _macros) = collect(str, collected)
+      items
     }
   }
   ;

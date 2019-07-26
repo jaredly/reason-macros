@@ -9,12 +9,12 @@ type valueType = [
   | `Pattern(pattern)
   | `LongCapIdent(Longident.t)
   | `LongIdent(Longident.t)
+  | `CapIdent(string)
+  | `Ident(string)
   | `StringConst(string)
   | `BoolConst(bool)
   | `IntConst(int)
   | `FloatConst(float)
-  | `CapIdent(string)
-  | `Ident(string)
 ];
 
 type locals = list((string, (Location.t, valueType)));

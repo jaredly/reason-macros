@@ -1,0 +1,11 @@
+let x = {
+  switch (Some(3)) {
+  | Some(a) =>
+    let d = 4;
+    switch (None) {
+    | Some () => Some(a + d)
+    | None => failwith("Unwrapped optional")
+    };
+  | None => None
+  };
+};

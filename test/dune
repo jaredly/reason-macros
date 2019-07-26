@@ -1,0 +1,5 @@
+(executable
+  (public_name macros)
+  (name Main)
+  (libraries macros platform_native reason unix)
+)
