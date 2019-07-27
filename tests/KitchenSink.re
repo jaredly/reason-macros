@@ -27,7 +27,7 @@ let%macro env = (vbl: string) => [%eval env(vbl)];
 
 [%sink (Some, Some.Long.Cap, someIdent, Some.Long.ident, [%pat? Some(_)], None, 35, false)]
 
-let%macro.pat apply = (ident: string, args: pattern) => [%pat? Pexp_apply({pexp_desc: Pexp_ident({txt: Lident(eval__ident)})}, eval__args)];
+let%macro.pattern apply = (ident: string, args: pattern) => [%pat? Pexp_apply({pexp_desc: Pexp_ident({txt: Lident(eval__ident)})}, eval__args)];
 
 switch expr {
   | [%apply ("++", [%pat? [(_, one), (_, two)]])] => one

@@ -30,6 +30,11 @@ let getStr = expr => switch expr.pexp_desc {
   | _ => fail(expr.pexp_loc, "toplevel macro contents must be a [%str ]")
 };
 
+let getPat = expr => switch expr.pexp_desc {
+  | Pexp_extension(({txt: "pat"}, PPat(pat, _))) => pat
+  | _ => fail(expr.pexp_loc, "pattern macro contents must be a [%pat? ]")
+};
+
 
 
 let getName = (pattern, attributes) => {
@@ -58,6 +63,19 @@ let processMacro = (txt, payload, attributes) => {
       let (args, body) = collectArgs(pvb_expr);
       let name = getName(pvb_pat, pvb_attributes);
       Some(Expression(name, args, body))
+    }
+    | ("macro.pattern", PStr([{pstr_desc: Pstr_value(Nonrecursive, [
+      {
+        pvb_pat,
+        pvb_expr,
+        pvb_attributes,
+        pvb_loc
+      }
+    ])}])) => {
+      let (args, body) = collectArgs(pvb_expr);
+      let name = getName(pvb_pat, pvb_attributes);
+      let body = getPat(body);
+      Some(Pattern(name, args, body))
     }
     | ("macro.toplevel", PStr([{pstr_desc: Pstr_value(Nonrecursive, [
       {

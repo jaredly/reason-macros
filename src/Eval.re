@@ -477,6 +477,11 @@ and evalExpr = (locals, body) => {
   mapper.expr(mapper, body);
 };
 
+let evalPat = (locals, body) => {
+  let mapper = evalMapper(locals);
+  mapper.pat(mapper, body);
+};
+
 let evalStr = (locals, body) => {
   let mapper = evalMapper(locals);
   mapper.structure(mapper, body);
@@ -494,6 +499,13 @@ let rec findExpression = (txt, macros) =>
   | [] => None
   | [Expression(n, args, str), ..._] when n == txt => Some((args, str))
   | [_, ...rest] => findExpression(txt, rest)
+  };
+
+let rec findPattern = (txt, macros) =>
+  switch (macros) {
+  | [] => None
+  | [Pattern(n, args, str), ..._] when n == txt => Some((args, str))
+  | [_, ...rest] => findPattern(txt, rest)
   };
 
 let rec findToplevel = (txt, macros) =>
@@ -514,6 +526,18 @@ let applyStrMacros = (macros, stri) =>
       Some(evalStr(locals, body));
     };
   | _ => None
+  };
+
+let applyPatMacros = (macros, pat) =>
+  switch (pat.ppat_desc) {
+  | Ppat_extension(({txt, loc: _}, payload)) =>
+    switch (findPattern(txt, macros)) {
+    | Some((args, body)) =>
+      let locals = Args.setupLocals(args, payload, pat.ppat_loc);
+      evalPat(locals, body);
+    | None => pat
+    }
+  | _ => pat
   };
 
 let applyExpMacros = (macros, exp) =>
@@ -570,6 +594,10 @@ let applyMapper = macros => {
       mapper,
       items,
     );
+  },
+  pat: (mapper, pat) => {
+    let pat = applyPatMacros(macros, pat);
+    Ast_mapper.default_mapper.pat(mapper, pat);
   },
   expr: (mapper, expr) => {
     let expr = applyExpMacros(macros, expr);

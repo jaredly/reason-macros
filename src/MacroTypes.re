@@ -38,6 +38,7 @@ type macro =
   | Let(string, pattern, pattern, pattern, expression)
   | Toplevel(string, list(pattern), structure)
   | Expression(string, list(pattern), expression)
+  | Pattern(string, list(pattern), pattern)
 
 let fail = (loc, txt) => raise(Location.Error(Location.error(~loc, txt)));
 let fail2 = (loc, txt, loc2, txt2) => raise(Location.Error(Location.error(~loc, ~sub=[
