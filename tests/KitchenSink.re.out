@@ -1,10 +1,31 @@
 {
   let someIdent = 2;
+
   let m = Js.log(someIdent);
+  let m = {
+    5 * 20;
+  };
+  {
+    Js.log("Large number: 35");
+  };
   switch (None) {
   | Some(47) => None
 
   | Some(_) => None
   | _ => None
   };
+
+  "yes";
 };
+
+switch (expr) {
+| Pexp_apply(
+    {pexp_desc: Pexp_ident({txt: Lident("++")})},
+    [(_, one), (_, two)],
+  ) => one
+| _ => ()
+};
+
+print_endline("Hello world");
+
+let editor = "nvim";

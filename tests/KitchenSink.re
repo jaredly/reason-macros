@@ -17,6 +17,17 @@ let%macro sink = (cap: capIdent, longCap: longCapIdent, id: ident, longId: longI
     | _ => None
   };
   let%eval (myMap: map) = {one: 2, three: "four", someIdent: "yes"};
+
+  switch%eval (get(myMap, "ok_$eval{id}")) {
+    | None => Js.log("Missing")
+    | Some(v) => Js.log(eval__v)
+  };
+
+  switch%eval (get(myMap, "$eval{id}")) {
+    | None => Js.log("Missing")
+    | Some(v) => Js.log("Found $eval{v}")
+  };
+
   let%eval number = [%eval get(myMap, "$eval{id}")];
   eval__number
 };

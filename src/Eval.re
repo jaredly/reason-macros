@@ -19,6 +19,12 @@ let showStr = str => {
   Format.flush_str_formatter();
 };
 
+let showPat = pat => {
+  Printast.payload(0, Format.str_formatter, PPat(pat, None));
+  Pprintast.pattern(Format.str_formatter, pat);
+  Format.flush_str_formatter();
+};
+
 let showExp2 = exp => {
   Printast.expression(0, Format.str_formatter, exp);
   Format.flush_str_formatter();
@@ -178,7 +184,7 @@ let rec evalLongIdent = (locals, lident, loc) => {
   };
 };
 
-let localToExpr = (expr, local: valueType, loc, vbl) => {
+let rec localToExpr = (expr, local: valueType, loc, vbl) => {
   switch (local) {
   | `Expr(expr) => expr
   | `Ident(name) => {
@@ -206,6 +212,16 @@ let localToExpr = (expr, local: valueType, loc, vbl) => {
       pexp_desc:
         Pexp_construct({loc, txt: Lident(bool ? "true" : "false")}, None),
     }
+  | `Option(Some(v)) => {
+    ...expr,
+      pexp_desc:
+        Pexp_construct({loc, txt: Lident("Some")}, Some(localToExpr(expr, v, loc, vbl))),
+  }
+  | `Option(None) => {
+    ...expr,
+      pexp_desc:
+        Pexp_construct({loc, txt: Lident("None")}, None),
+  }
   | `Map(_) => fail(expr.pexp_loc, "Maps cannot be turned into expressions")
   | `Pattern(_)
   | `LongCapIdent(_)
@@ -246,6 +262,7 @@ let localToPattern = (pat, local: valueType, loc, vbl) => {
       ppat_desc:
         Ppat_construct({loc, txt: Lident(bool ? "true" : "false")}, None),
     }
+  | `Option(_) => fail(pat.ppat_loc, "Options cannot be turned into patterns")
   | `Map(_) => fail(pat.ppat_loc, "Maps cannot be turned into patterns")
   | `Expr(_)
   | `LongIdent(_) =>
@@ -291,6 +308,7 @@ let rec evalLocal = (locals, expr): valueType => {
       }
     }
 
+    // Functions here
     | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("env")})}, [(_, arg)]) => switch (evalLocal(locals, arg)) {
       | `StringConst(name) => switch (Sys.getenv_opt(name)) {
         | None => `StringConst("")
@@ -301,8 +319,8 @@ let rec evalLocal = (locals, expr): valueType => {
 
     | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("get")})}, [(_, arg), (_, attr)]) => switch (evalLocal(locals, arg), evalLocal(locals, attr)) {
       | (`Map(items), `StringConst(attr)) => switch (List.assoc(attr, items)) {
-        | exception Not_found => fail(expr.pexp_loc, "Invalid key " ++ attr)
-        | v => v
+        | exception Not_found => `Option(None)
+        | v => `Option(Some(v))
       }
       | (one, two) => fail(expr.pexp_loc, "get() must be called with a map and a string (got " ++ showType(one) ++ " and " ++ showType(two) ++ ")")
     }
@@ -322,6 +340,22 @@ let evalCondition = (locals, condition) => {
     | `BoolConst(v) => v
     | _ => fail(condition.pexp_loc, "Expected a boolean")
   }
+};
+
+let rec matchCase = (pattern, value: valueType, loc) => switch (pattern.ppat_desc, value) {
+  | (Ppat_var({txt}), _) => Some([(txt, (loc, value))])
+  | (Ppat_tuple([one]), _) => matchCase(one, value, loc)
+  | (Ppat_constant(Pconst_string(string, _)), `StringConst(value)) => string == value ? Some([]) : None
+  | (Ppat_constant(Pconst_string(string, _)), _) => fail2(pattern.ppat_loc, "Matching a string, but got a " ++ showType(value), loc, "Defined here")
+  | (Ppat_constant(Pconst_integer(int, _)), `IntConst(value)) => int_of_string(int) == value ? Some([]) : None
+  | (Ppat_constant(Pconst_integer(int, _)), _) => fail2(pattern.ppat_loc, "Matching an integer, but got a " ++ showType(value), loc, "Defined here")
+  | (Ppat_construct({txt: Lident("None")}, None), `Option(None)) => Some([])
+  | (Ppat_construct({txt: Lident("None")}, None), `Option(Some(_))) => None
+  | (Ppat_construct({txt: Lident("None")}, None), _) => fail2(pattern.ppat_loc, "Matching an optional, but got a " ++ showType(value), loc, "Defined here")
+  | (Ppat_construct({txt: Lident("Some")}, Some(_inner)), `Option(None)) => None
+  | (Ppat_construct({txt: Lident("Some")}, Some(inner)), `Option(Some(v))) => matchCase(inner, v, loc)
+  | (Ppat_construct({txt: Lident("Some")}, Some(_inner)), _) => fail2(pattern.ppat_loc, "Matching an optional, but got a " ++ showType(value), loc, "Defined here")
+  | _ => fail(pattern.ppat_loc, "Unsupported match case: " ++ showPat(pattern))
 };
 
 let rec evalMapper = (locals: locals) => {
@@ -377,6 +411,19 @@ let rec evalMapper = (locals: locals) => {
       | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_let(Nonrecursive, [{pvb_pat, pvb_expr}], body)}, _)}]))) => {
         let locals = Args.bindLocal(pvb_pat, evalExpr(locals, pvb_expr)) @ locals;
         evalExpr(locals, body)
+      }
+      // switch%eval
+      | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_match(value, cases)}, _)}]))) => {
+        let value = evalLocal(locals, value);
+        let rec loop = (cases: list(case)) => switch cases {
+          | [] => fail(expr.pexp_loc, "No matching case found")
+          | [{pc_lhs, pc_guard: Some(guard), pc_rhs}, ...rest] => fail(guard.pexp_loc, "case guards not allowed in switch%eval")
+          | [{pc_lhs, pc_rhs}, ...rest] => switch (matchCase(pc_lhs, value, Location.none)) {
+            | None => loop(rest)
+            | Some(newLocals) => evalExpr(newLocals @ locals, pc_rhs)
+          }
+        };
+        loop(cases)
       }
       // [%eval something]
       | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval(expr, _)}]))) => {

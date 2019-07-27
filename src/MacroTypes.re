@@ -14,11 +14,14 @@ type valueType = [
   | `StringConst(string)
   | `BoolConst(bool)
   | `IntConst(int)
+  | `Option(option(valueType))
   | `FloatConst(float)
   | `Map(list((string, valueType)))
 ];
 
-let showType = (t: valueType) => switch t {
+let rec showType = (t: valueType) => switch t {
+  | `Option(Some(v)) => "option(" ++ showType(v) ++ ")"
+  | `Option(None) => "option(<empty>)"
   | `Expr(_) => "expression"
   | `Pattern(_) => "pattern"
   | `LongCapIdent(lident) => "long cap identifier (" ++ String.concat(".", Longident.flatten(lident)) ++ ")"
