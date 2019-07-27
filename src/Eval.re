@@ -408,6 +408,20 @@ let rec evalMapper = (locals: locals) => {
         }
       }
       // let%eval
+      | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_let(Nonrecursive, [{pvb_pat: {ppat_desc: Ppat_var({txt})}, pvb_expr:{pexp_desc: Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval(expr, _)}])))} }], 
+      body
+      )}, _)}]))) when {
+        switch expr.pexp_desc {
+          | Pexp_let(_)
+          | Pexp_match(_)
+          | Pexp_ifthenelse(_) => false
+          | _ => true
+        }
+      } => {
+        let locals = [(txt, (expr.pexp_loc, evalLocal(locals, expr)))] @ locals;
+        evalExpr(locals, body)
+      }
+      // let%eval
       | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_let(Nonrecursive, [{pvb_pat, pvb_expr}], body)}, _)}]))) => {
         let locals = Args.bindLocal(pvb_pat, evalExpr(locals, pvb_expr)) @ locals;
         evalExpr(locals, body)
