@@ -132,10 +132,20 @@ let test = (~only=?, overwrite) => {
                   Fs.writeFile(full ++ ".out", output) |> ignore;
                 } else {
                   print_endline("Failure! Output for " ++ full ++ " was different!");
+                  if (only != None) {
+                    print_endline("\n---- got ----\n");
+                    print_endline(output);
+                    print_endline("---- expected ----\n");
+                    print_endline(current)
+                    print_newline();
+                  }
                   Fs.writeFile(full ++ ".out.new", output) |> ignore;
                 }
                 failed := failed^ + 1;
               } else {
+                if (Fs.maybeStat(full ++ ".out.new") != None) {
+                  Unix.unlink(full ++ ".out.new")
+                };
                 print_endline(full ++ " matched")
               }
             }

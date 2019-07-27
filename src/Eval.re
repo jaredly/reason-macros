@@ -5,6 +5,21 @@ open MacroTypes;
 open Parsetree;
 open Longident;
 
+let showStr = str => {
+  module BackConverter = Migrate_parsetree.Convert(Migrate_parsetree.OCaml_407)(Migrate_parsetree.OCaml_404);
+  let oldAst = BackConverter.copy_structure(str);
+  Reason_toolchain.Reason_syntax.format_implementation_with_comments((oldAst, []), Format.str_formatter);
+  Format.flush_str_formatter();
+};
+
+let showExp = exp => {
+  let str = [Ast_helper.Str.eval(exp)];
+  module BackConverter = Migrate_parsetree.Convert(Migrate_parsetree.OCaml_407)(Migrate_parsetree.OCaml_404);
+  let oldAst = BackConverter.copy_structure(str);
+  Reason_toolchain.Reason_syntax.format_implementation_with_comments((oldAst, []), Format.str_formatter);
+  Format.flush_str_formatter();
+};
+
 let prefix = "eval__";
 let pl = String.length(prefix);
 
@@ -239,7 +254,8 @@ let evalMapper = (locals: locals) => {
         }
       | _ => item
       };
-    Ast_mapper.default_mapper.structure_item(mapper, item);
+    // Ast_mapper.default_mapper.structure_item(mapper, item);
+    Ast_helper.Str.eval(Ast_helper.Exp.constant(Pconst_integer("111", None)))
   },
   module_binding: (mapper, mb) => {
     let ident = evalCapIdent(locals, mb.pmb_name.txt, mb.pmb_name.loc);
@@ -279,12 +295,21 @@ let evalMapper = (locals: locals) => {
       // if (newString != string) {
         {
           ...expr,
+          pexp_loc: Location.none,
           pexp_desc: Pexp_constant(Pconst_string(newString, fence)),
+          // pexp_desc: Pexp_constant(Pconst_string("wat", None)),
         };
       // } else {
-      //   expr;
+        // expr;
       // };
-    | _ => Ast_mapper.default_mapper.expr(mapper, expr)
+    | _ =>
+    Ast_mapper.default_mapper.expr(mapper, expr)
+    // Ast_helper.Exp.constant(Pconst_integer("1111", None))
+        // {
+        //   ...expr,
+        //   // pexp_desc: Pexp_constant(Pconst_string(newString, fence)),
+        //   pexp_desc: Pexp_constant(Pconst_string("wat", None)),
+        // };
     };
   },
   pat: (mapper, pat) => {
@@ -401,14 +426,22 @@ let applyExpMacros = (macros, exp) =>
       | _ => exp
       }
     }
-  | _ => exp
+  | _ => {
+    print_endline("Exp: " ++ showExp(exp));
+
+  // exp
+  // {...exp, pexp_loc: Location.none}
+    Ast_helper.Exp.constant(Pconst_integer("1111", None))
+  }
   };
 
 let applyMapper = macros => {
   ...Ast_mapper.default_mapper,
-  structure: (mapper, str) =>
-    List.fold_left(
+  structure: (mapper, str) => {
+
+    let items = List.fold_left(
       (result, item) => {
+        print_endline(showStr([item]));
         switch (applyStrMacros(macros, item)) {
         | None => [
             Ast_mapper.default_mapper.structure_item(mapper, item),
@@ -420,7 +453,11 @@ let applyMapper = macros => {
       [],
       str,
     )
-    |> List.rev,
+    |> List.rev;
+    print_endline("Done: " ++ showStr(items));
+    items
+  },
   expr: (mapper, expr) =>
+  // applyExpMacros(macros, expr)
     Ast_mapper.default_mapper.expr(mapper, applyExpMacros(macros, expr)),
 };

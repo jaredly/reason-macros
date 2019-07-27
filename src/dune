@@ -1,5 +1,5 @@
 (library
   (name macros)
   (flags :standard -w -9)
-  (libraries compiler-libs ocaml-migrate-parsetree str platform)
+  (libraries compiler-libs ocaml-migrate-parsetree str platform reason)
   )
