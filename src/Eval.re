@@ -6,17 +6,41 @@ open Parsetree;
 open Longident;
 
 let showStr = str => {
-  module BackConverter = Migrate_parsetree.Convert(Migrate_parsetree.OCaml_407)(Migrate_parsetree.OCaml_404);
+  module BackConverter =
+    Migrate_parsetree.Convert(
+      Migrate_parsetree.OCaml_407,
+      Migrate_parsetree.OCaml_404,
+    );
   let oldAst = BackConverter.copy_structure(str);
-  Reason_toolchain.Reason_syntax.format_implementation_with_comments((oldAst, []), Format.str_formatter);
+  Reason_toolchain.Reason_syntax.format_implementation_with_comments(
+    (oldAst, []),
+    Format.str_formatter,
+  );
+  Format.flush_str_formatter();
+};
+
+let showExp2 = exp => {
+  Printast.expression(0, Format.str_formatter, exp);
+  Format.flush_str_formatter();
+};
+
+let showExp3 = exp => {
+  Pprintast.expression(Format.str_formatter, exp);
   Format.flush_str_formatter();
 };
 
 let showExp = exp => {
   let str = [Ast_helper.Str.eval(exp)];
-  module BackConverter = Migrate_parsetree.Convert(Migrate_parsetree.OCaml_407)(Migrate_parsetree.OCaml_404);
+  module BackConverter =
+    Migrate_parsetree.Convert(
+      Migrate_parsetree.OCaml_407,
+      Migrate_parsetree.OCaml_404,
+    );
   let oldAst = BackConverter.copy_structure(str);
-  Reason_toolchain.Reason_syntax.format_implementation_with_comments((oldAst, []), Format.str_formatter);
+  Reason_toolchain.Reason_syntax.format_implementation_with_comments(
+    (oldAst, []),
+    Format.str_formatter,
+  );
   Format.flush_str_formatter();
 };
 
@@ -34,29 +58,26 @@ let checkEvalPrefix = txt => {
   };
 };
 
-
 let evalString = (locals: locals, string, loc) => {
   Platform.interpolateString(string, text => {
-      switch (List.assoc(text, locals) |> snd) {
-      | exception Not_found =>
-        fail(loc, "Interpolation variable " ++ text ++ " not found")
-      | `Ident(name) => name
-      | `CapIdent(name) => name
-      | `LongIdent(lident)
-      | `LongCapIdent(lident) =>
-        String.concat(".", Longident.flatten(lident))
-      | `BoolConst(true) => "true"
-      | `BoolConst(false) => "false"
-      | `IntConst(int) => string_of_int(int)
-      | `StringConst(string) => string
-      | _ =>
-        fail(
-          loc,
-          "String interpolation only currently supported for ident and capIdent MacroTypes",
-        )
-      };
-    },
-  );
+    switch (List.assoc(text, locals) |> snd) {
+    | exception Not_found =>
+      fail(loc, "Interpolation variable " ++ text ++ " not found")
+    | `Ident(name) => name
+    | `CapIdent(name) => name
+    | `LongIdent(lident)
+    | `LongCapIdent(lident) => String.concat(".", Longident.flatten(lident))
+    | `BoolConst(true) => "true"
+    | `BoolConst(false) => "false"
+    | `IntConst(int) => string_of_int(int)
+    | `StringConst(string) => string
+    | _ =>
+      fail(
+        loc,
+        "String interpolation only currently supported for ident and capIdent MacroTypes",
+      )
+    }
+  });
 };
 
 let isCapitalized = txt =>
@@ -182,9 +203,12 @@ let localToExpr = (expr, local: valueType, loc, vbl) => {
     }
   | `BoolConst(bool) => {
       ...expr,
-      pexp_desc: Pexp_construct({loc, txt: Lident(bool ? "true": "false")}, None)
+      pexp_desc:
+        Pexp_construct({loc, txt: Lident(bool ? "true" : "false")}, None),
     }
-  | `Pattern(_) | `LongCapIdent(_) | `CapIdent(_) =>
+  | `Pattern(_)
+  | `LongCapIdent(_)
+  | `CapIdent(_) =>
     fail(
       expr.pexp_loc,
       "Variable " ++ vbl ++ " expected to be an ident, expression, or constant",
@@ -195,10 +219,7 @@ let localToExpr = (expr, local: valueType, loc, vbl) => {
 let localToPattern = (pat, local: valueType, loc, vbl) => {
   switch (local) {
   | `Pattern(pat) => pat
-  | `Ident(name) => {
-      ...pat,
-      ppat_desc: Ppat_var({txt: name, loc}),
-    }
+  | `Ident(name) => {...pat, ppat_desc: Ppat_var({txt: name, loc})}
   | `LongCapIdent(lident) => {
       ...pat,
       ppat_desc: Ppat_construct({txt: lident, loc}, None),
@@ -221,13 +242,12 @@ let localToPattern = (pat, local: valueType, loc, vbl) => {
     }
   | `BoolConst(bool) => {
       ...pat,
-      ppat_desc: Ppat_construct({loc, txt: Lident(bool ? "true": "false")}, None)
+      ppat_desc:
+        Ppat_construct({loc, txt: Lident(bool ? "true" : "false")}, None),
     }
-  | `Expr(_) | `LongIdent(_) =>
-    fail(
-      pat.ppat_loc,
-      "Variable " ++ vbl ++ " expected to be a pattern",
-    )
+  | `Expr(_)
+  | `LongIdent(_) =>
+    fail(pat.ppat_loc, "Variable " ++ vbl ++ " expected to be a pattern")
   };
 };
 
@@ -254,8 +274,7 @@ let evalMapper = (locals: locals) => {
         }
       | _ => item
       };
-    // Ast_mapper.default_mapper.structure_item(mapper, item);
-    Ast_helper.Str.eval(Ast_helper.Exp.constant(Pconst_integer("111", None)))
+    Ast_mapper.default_mapper.structure_item(mapper, item);
   },
   module_binding: (mapper, mb) => {
     let ident = evalCapIdent(locals, mb.pmb_name.txt, mb.pmb_name.loc);
@@ -268,49 +287,59 @@ let evalMapper = (locals: locals) => {
     Ast_mapper.default_mapper.module_binding(mapper, mb);
   },
   expr: (mapper, expr) => {
-    switch (expr.pexp_desc) {
-    | Pexp_ident({txt: Lident(vbl)}) =>
-      switch (checkEvalPrefix(vbl)) {
-      | None => expr
-      | Some(vbl) =>
-        switch (List.assoc(vbl, locals)) {
-        | exception Not_found =>
-          fail(expr.pexp_loc, "Variable " ++ vbl ++ " not found")
-        | (loc, local) => localToExpr(expr, local, loc, vbl)
+    let expr =
+      switch (expr.pexp_desc) {
+      | Pexp_ident({txt: Lident(vbl)}) =>
+        switch (checkEvalPrefix(vbl)) {
+        | None => expr
+        | Some(vbl) =>
+          switch (List.assoc(vbl, locals)) {
+          | exception Not_found =>
+            fail(expr.pexp_loc, "Variable " ++ vbl ++ " not found")
+          | (loc, local) => localToExpr(expr, local, loc, vbl)
+          }
         }
-      }
-    | Pexp_ident(ident) =>
-      let newIdent = evalLongIdent(locals, ident.txt, ident.loc);
-      if (ident.txt != newIdent) {
-        {
-          ...expr,
-          pexp_desc: Pexp_ident(Location.mkloc(newIdent, ident.loc)),
+      | Pexp_ident(ident) =>
+        let newIdent = evalLongIdent(locals, ident.txt, ident.loc);
+        if (ident.txt != newIdent) {
+          {
+            ...expr,
+            pexp_desc: Pexp_ident(Location.mkloc(newIdent, ident.loc)),
+          };
+        } else {
+          expr;
         };
-      } else {
-        expr;
+      | Pexp_constant(Pconst_string(string, fence)) =>
+        let newString = evalString(locals, string, expr.pexp_loc);
+        if (newString != string) {
+          {
+            pexp_loc: Location.none,
+            pexp_desc: Pexp_constant(Pconst_string(newString, fence)),
+            pexp_attributes:
+              expr.pexp_attributes
+              |> List.map(((attr, payload)) =>
+                   if (attr.Location.txt == "reason.raw_literal") {
+                     (
+                       attr,
+                       PStr([
+                         Ast_helper.Str.eval(
+                           Ast_helper.Exp.constant(
+                             Pconst_string(newString, None),
+                           ),
+                         ),
+                       ]),
+                     );
+                   } else {
+                     (attr, payload);
+                   }
+                 ),
+          };
+        } else {
+          expr;
+        };
+      | _ => expr
       };
-    | Pexp_constant(Pconst_string(string, fence)) =>
-      let newString = evalString(locals, string, expr.pexp_loc);
-      print_endline(">>> I see a string constant " ++ string ++ " :: " ++ newString);
-      // if (newString != string) {
-        {
-          ...expr,
-          pexp_loc: Location.none,
-          pexp_desc: Pexp_constant(Pconst_string(newString, fence)),
-          // pexp_desc: Pexp_constant(Pconst_string("wat", None)),
-        };
-      // } else {
-        // expr;
-      // };
-    | _ =>
-    Ast_mapper.default_mapper.expr(mapper, expr)
-    // Ast_helper.Exp.constant(Pconst_integer("1111", None))
-        // {
-        //   ...expr,
-        //   // pexp_desc: Pexp_constant(Pconst_string(newString, fence)),
-        //   pexp_desc: Pexp_constant(Pconst_string("wat", None)),
-        // };
-    };
+    Ast_mapper.default_mapper.expr(mapper, expr);
   },
   pat: (mapper, pat) => {
     switch (pat.ppat_desc) {
@@ -426,38 +455,30 @@ let applyExpMacros = (macros, exp) =>
       | _ => exp
       }
     }
-  | _ => {
-    print_endline("Exp: " ++ showExp(exp));
-
-  // exp
-  // {...exp, pexp_loc: Location.none}
-    Ast_helper.Exp.constant(Pconst_integer("1111", None))
-  }
+  | _ => exp
   };
 
 let applyMapper = macros => {
   ...Ast_mapper.default_mapper,
   structure: (mapper, str) => {
-
     let items = List.fold_left(
       (result, item) => {
-        print_endline(showStr([item]));
         switch (applyStrMacros(macros, item)) {
-        | None => [
-            Ast_mapper.default_mapper.structure_item(mapper, item),
-            ...result,
-          ]
-        | Some(items) => List.rev(mapper.structure(mapper, items)) @ result
+        | None => [item, ...result]
+        | Some(items) => List.rev(items) @ result
         }
       },
       [],
       str,
     )
     |> List.rev;
-    print_endline("Done: " ++ showStr(items));
-    items
+    Ast_mapper.default_mapper.structure(
+      mapper,
+      items,
+    );
   },
-  expr: (mapper, expr) =>
-  // applyExpMacros(macros, expr)
-    Ast_mapper.default_mapper.expr(mapper, applyExpMacros(macros, expr)),
-};
+  expr: (mapper, expr) => {
+    let expr = applyExpMacros(macros, expr);
+    Ast_mapper.default_mapper.expr(mapper, expr);
+  },
+}

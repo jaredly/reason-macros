@@ -3,3 +3,7 @@ let%macro more = (str: string, num: int) => "hi $eval{num} and $eval{str}";
 
 [%simple 5];
 [%more ("People", 3)];
+
+module Sub = {
+  [%simple 10];
+}
