@@ -213,15 +213,17 @@ let rec localToExpr = (expr, local: valueType, loc, vbl) => {
         Pexp_construct({loc, txt: Lident(bool ? "true" : "false")}, None),
     }
   | `Option(Some(v)) => {
-    ...expr,
+      ...expr,
       pexp_desc:
-        Pexp_construct({loc, txt: Lident("Some")}, Some(localToExpr(expr, v, loc, vbl))),
-  }
+        Pexp_construct(
+          {loc, txt: Lident("Some")},
+          Some(localToExpr(expr, v, loc, vbl)),
+        ),
+    }
   | `Option(None) => {
-    ...expr,
-      pexp_desc:
-        Pexp_construct({loc, txt: Lident("None")}, None),
-  }
+      ...expr,
+      pexp_desc: Pexp_construct({loc, txt: Lident("None")}, None),
+    }
   | `Map(_) => fail(expr.pexp_loc, "Maps cannot be turned into expressions")
   | `Pattern(_)
   | `LongCapIdent(_)
@@ -271,92 +273,181 @@ let localToPattern = (pat, local: valueType, loc, vbl) => {
 };
 
 let rec evalLocal = (locals, expr): valueType => {
-  switch expr.pexp_desc {
-    | Pexp_ident({txt: Lident(name)}) => {
-      switch (List.assoc(name, locals)) {
-        | exception Not_found => fail(expr.pexp_loc, "Undefined macro variable: " ++ name)
-        | (loc, value) => value
-      }
+  switch (expr.pexp_desc) {
+  | Pexp_ident({txt: Lident(name)}) =>
+    switch (List.assoc(name, locals)) {
+    | exception Not_found =>
+      fail(expr.pexp_loc, "Undefined macro variable: " ++ name)
+    | (loc, value) => value
     }
-    | Pexp_constant(Pconst_string(string, _)) => `StringConst(evalString(locals, string, expr.pexp_loc))
-    | Pexp_constant(Pconst_integer(int, _)) => `IntConst(int_of_string(int))
-    | Pexp_constant(Pconst_float(float, _)) => `FloatConst(float_of_string(float))
-    | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("=" | "==")})}, [(_, one), (_, two)]) => {
-      `BoolConst(evalLocal(locals, one) == evalLocal(locals, two))
-    }
-    | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("<>" | "!=")})}, [(_, one), (_, two)]) => {
-      `BoolConst(evalLocal(locals, one) != evalLocal(locals, two))
-    }
-    | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident((">" | "<") as op)})}, [(_, one), (_, two)]) => {
-      `BoolConst(switch (evalLocal(locals, one), evalLocal(locals, two)) {
-        | (`IntConst(one), `IntConst(two)) => op == ">" ? one > two : one < two
-        | (`FloatConst(one), `FloatConst(two)) => op == ">" ? one > two : one < two
-        | _ => fail(expr.pexp_loc, "< and > can only be used with both ints or both floats")
-      })
-    }
-    | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident(("+" | "-") as op)})}, [(_, one), (_, two)]) => {
+  | Pexp_constant(Pconst_string(string, _)) =>
+    `StringConst(evalString(locals, string, expr.pexp_loc))
+  | Pexp_constant(Pconst_integer(int, _)) => `IntConst(int_of_string(int))
+  | Pexp_constant(Pconst_float(float, _)) =>
+    `FloatConst(float_of_string(float))
+  | Pexp_apply(
+      {pexp_desc: Pexp_ident({txt: Lident("=" | "==")})},
+      [(_, one), (_, two)],
+    ) =>
+    `BoolConst(evalLocal(locals, one) == evalLocal(locals, two))
+  | Pexp_apply(
+      {pexp_desc: Pexp_ident({txt: Lident("<>" | "!=")})},
+      [(_, one), (_, two)],
+    ) =>
+    `BoolConst(evalLocal(locals, one) != evalLocal(locals, two))
+  | Pexp_apply(
+      {pexp_desc: Pexp_ident({txt: Lident((">" | "<") as op)})},
+      [(_, one), (_, two)],
+    ) =>
+    `BoolConst(
       switch (evalLocal(locals, one), evalLocal(locals, two)) {
-        | (`IntConst(one), `IntConst(two)) => `IntConst(op == "+" ? one + two : one - two)
-        | (`FloatConst(one), `FloatConst(two)) => `FloatConst(op == "+" ? one +. two : one -. two)
-        | _ => fail(expr.pexp_loc, "+ and - can only be used with both ints or both floats")
+      | (`IntConst(one), `IntConst(two)) => op == ">" ? one > two : one < two
+      | (`FloatConst(one), `FloatConst(two)) =>
+        op == ">" ? one > two : one < two
+      | _ =>
+        fail(
+          expr.pexp_loc,
+          "< and > can only be used with both ints or both floats",
+        )
+      },
+    )
+  | Pexp_apply(
+      {pexp_desc: Pexp_ident({txt: Lident(("+" | "-") as op)})},
+      [(_, one), (_, two)],
+    ) =>
+    switch (evalLocal(locals, one), evalLocal(locals, two)) {
+    | (`IntConst(one), `IntConst(two)) =>
+      `IntConst(op == "+" ? one + two : one - two)
+    | (`FloatConst(one), `FloatConst(two)) =>
+      `FloatConst(op == "+" ? one +. two : one -. two)
+    | _ =>
+      fail(
+        expr.pexp_loc,
+        "+ and - can only be used with both ints or both floats",
+      )
+    }
+  | Pexp_apply(
+      {pexp_desc: Pexp_ident({txt: Lident("++")})},
+      [(_, one), (_, two)],
+    ) =>
+    switch (evalLocal(locals, one), evalLocal(locals, two)) {
+    | (`StringConst(one), `StringConst(two)) => `StringConst(one ++ two)
+    | _ => fail(expr.pexp_loc, "++ can only be used with both strings")
+    }
+
+  // Functions here
+  | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("env")})}, [(_, arg)]) =>
+    switch (evalLocal(locals, arg)) {
+    | `StringConst(name) =>
+      switch (Sys.getenv_opt(name)) {
+      | None => `StringConst("")
+      | Some(v) => `StringConst(v)
       }
+    | _ => fail(expr.pexp_loc, "env() must be called with a string")
     }
-    | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("++")})}, [(_, one), (_, two)]) => {
-      switch (evalLocal(locals, one), evalLocal(locals, two)) {
-        | (`StringConst(one), `StringConst(two)) => `StringConst(one ++ two)
-        | _ => fail(expr.pexp_loc, "++ can only be used with both strings")
+
+  | Pexp_apply(
+      {pexp_desc: Pexp_ident({txt: Lident("get")})},
+      [(_, arg), (_, attr)],
+    ) =>
+    switch (evalLocal(locals, arg), evalLocal(locals, attr)) {
+    | (`Map(items), `StringConst(attr)) =>
+      switch (List.assoc(attr, items)) {
+      | exception Not_found => `Option(None)
+      | v => `Option(Some(v))
       }
+    | (one, two) =>
+      fail(
+        expr.pexp_loc,
+        "get() must be called with a map and a string (got "
+        ++ showType(one)
+        ++ " and "
+        ++ showType(two)
+        ++ ")",
+      )
     }
 
-    // Functions here
-    | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("env")})}, [(_, arg)]) => switch (evalLocal(locals, arg)) {
-      | `StringConst(name) => switch (Sys.getenv_opt(name)) {
-        | None => `StringConst("")
-        | Some(v) => `StringConst(v)
-      }
-      | _ => fail(expr.pexp_loc, "env() must be called with a string")
-    }
+  | Pexp_extension((
+      {txt: "bs.obj"},
+      PStr([
+        {
+          pstr_desc:
+            Pstr_eval({pexp_desc: Pexp_record(attributes, None)}, _),
+        },
+      ]),
+    ))
+  | Pexp_record(attributes, None) =>
+    `Map(
+      attributes
+      |> List.map((({Location.txt}, expr)) =>
+           (
+             Longident.flatten(txt) |> String.concat("."),
+             evalLocal(locals, expr),
+           )
+         ),
+    )
 
-    | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("get")})}, [(_, arg), (_, attr)]) => switch (evalLocal(locals, arg), evalLocal(locals, attr)) {
-      | (`Map(items), `StringConst(attr)) => switch (List.assoc(attr, items)) {
-        | exception Not_found => `Option(None)
-        | v => `Option(Some(v))
-      }
-      | (one, two) => fail(expr.pexp_loc, "get() must be called with a map and a string (got " ++ showType(one) ++ " and " ++ showType(two) ++ ")")
-    }
-
-    | Pexp_extension(({txt: "bs.obj"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_record(attributes, None)}, _)}])))
-    | Pexp_record(attributes, None) => {
-      `Map(attributes |> List.map((({Location.txt}, expr)) => (Longident.flatten(txt) |> String.concat("."), evalLocal(locals, expr))))
-    }
-
-
-    | _ => fail(expr.pexp_loc, "Unable to %eval this expression.")
-  }
+  | _ => fail(expr.pexp_loc, "Unable to %eval this expression.")
+  };
 };
 
 let evalCondition = (locals, condition) => {
   switch (evalLocal(locals, condition)) {
-    | `BoolConst(v) => v
-    | _ => fail(condition.pexp_loc, "Expected a boolean")
-  }
+  | `BoolConst(v) => v
+  | _ => fail(condition.pexp_loc, "Expected a boolean")
+  };
 };
 
-let rec matchCase = (pattern, value: valueType, loc) => switch (pattern.ppat_desc, value) {
+let rec matchCase = (pattern, value: valueType, loc) =>
+  switch (pattern.ppat_desc, value) {
   | (Ppat_var({txt}), _) => Some([(txt, (loc, value))])
   | (Ppat_tuple([one]), _) => matchCase(one, value, loc)
-  | (Ppat_constant(Pconst_string(string, _)), `StringConst(value)) => string == value ? Some([]) : None
-  | (Ppat_constant(Pconst_string(string, _)), _) => fail2(pattern.ppat_loc, "Matching a string, but got a " ++ showType(value), loc, "Defined here")
-  | (Ppat_constant(Pconst_integer(int, _)), `IntConst(value)) => int_of_string(int) == value ? Some([]) : None
-  | (Ppat_constant(Pconst_integer(int, _)), _) => fail2(pattern.ppat_loc, "Matching an integer, but got a " ++ showType(value), loc, "Defined here")
-  | (Ppat_construct({txt: Lident("None")}, None), `Option(None)) => Some([])
-  | (Ppat_construct({txt: Lident("None")}, None), `Option(Some(_))) => None
-  | (Ppat_construct({txt: Lident("None")}, None), _) => fail2(pattern.ppat_loc, "Matching an optional, but got a " ++ showType(value), loc, "Defined here")
-  | (Ppat_construct({txt: Lident("Some")}, Some(_inner)), `Option(None)) => None
-  | (Ppat_construct({txt: Lident("Some")}, Some(inner)), `Option(Some(v))) => matchCase(inner, v, loc)
-  | (Ppat_construct({txt: Lident("Some")}, Some(_inner)), _) => fail2(pattern.ppat_loc, "Matching an optional, but got a " ++ showType(value), loc, "Defined here")
-  | _ => fail(pattern.ppat_loc, "Unsupported match case: " ++ showPat(pattern))
-};
+  | (Ppat_constant(Pconst_string(string, _)), `StringConst(value)) =>
+    string == value ? Some([]) : None
+  | (Ppat_constant(Pconst_string(string, _)), _) =>
+    fail2(
+      pattern.ppat_loc,
+      "Matching a string, but got a " ++ showType(value),
+      loc,
+      "Defined here",
+    )
+  | (Ppat_constant(Pconst_integer(int, _)), `IntConst(value)) =>
+    int_of_string(int) == value ? Some([]) : None
+  | (Ppat_constant(Pconst_integer(int, _)), _) =>
+    fail2(
+      pattern.ppat_loc,
+      "Matching an integer, but got a " ++ showType(value),
+      loc,
+      "Defined here",
+    )
+  | (Ppat_construct({txt: Lident("None")}, None), `Option(None)) =>
+    Some([])
+  | (Ppat_construct({txt: Lident("None")}, None), `Option(Some(_))) =>
+    None
+  | (Ppat_construct({txt: Lident("None")}, None), _) =>
+    fail2(
+      pattern.ppat_loc,
+      "Matching an optional, but got a " ++ showType(value),
+      loc,
+      "Defined here",
+    )
+  | (Ppat_construct({txt: Lident("Some")}, Some(_inner)), `Option(None)) =>
+    None
+  | (
+      Ppat_construct({txt: Lident("Some")}, Some(inner)),
+      `Option(Some(v)),
+    ) =>
+    matchCase(inner, v, loc)
+  | (Ppat_construct({txt: Lident("Some")}, Some(_inner)), _) =>
+    fail2(
+      pattern.ppat_loc,
+      "Matching an optional, but got a " ++ showType(value),
+      loc,
+      "Defined here",
+    )
+  | _ =>
+    fail(pattern.ppat_loc, "Unsupported match case: " ++ showPat(pattern))
+  };
 
 let rec evalMapper = (locals: locals) => {
   ...Ast_mapper.default_mapper,
@@ -397,54 +488,123 @@ let rec evalMapper = (locals: locals) => {
     let expr =
       switch (expr.pexp_desc) {
       // if%eval
-      | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_ifthenelse(iff, thenn, elsee)}, _)}]))) => {
+      | Pexp_extension((
+          {txt: "eval"},
+          PStr([
+            {
+              pstr_desc:
+                Pstr_eval(
+                  {pexp_desc: Pexp_ifthenelse(iff, thenn, elsee)},
+                  _,
+                ),
+            },
+          ]),
+        )) =>
         if (evalCondition(locals, iff)) {
-          mapper.expr(mapper, thenn)
+          mapper.expr(mapper, thenn);
         } else {
-          switch elsee {
-            | None => Ast_helper.Exp.construct(Location.mknoloc(Lident("()")), None)
-            | Some(elsee) => mapper.expr(mapper, elsee)
-          }
+          switch (elsee) {
+          | None =>
+            Ast_helper.Exp.construct(Location.mknoloc(Lident("()")), None)
+          | Some(elsee) => mapper.expr(mapper, elsee)
+          };
         }
-      }
       // let%eval
-      | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_let(Nonrecursive, [{pvb_pat: {ppat_desc: Ppat_var({txt})}, pvb_expr:{pexp_desc: Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval(expr, _)}])))} }], 
-      body
-      )}, _)}]))) when {
-        switch expr.pexp_desc {
-          | Pexp_let(_)
-          | Pexp_match(_)
-          | Pexp_ifthenelse(_) => false
-          | _ => true
-        }
-      } => {
-        let locals = [(txt, (expr.pexp_loc, evalLocal(locals, expr)))] @ locals;
-        evalExpr(locals, body)
-      }
+      | Pexp_extension((
+          {txt: "eval"},
+          PStr([
+            {
+              pstr_desc:
+                Pstr_eval(
+                  {
+                    pexp_desc:
+                      Pexp_let(
+                        Nonrecursive,
+                        [
+                          {
+                            pvb_pat: {ppat_desc: Ppat_var({txt})},
+                            pvb_expr: {
+                              pexp_desc:
+                                Pexp_extension((
+                                  {txt: "eval"},
+                                  PStr([{pstr_desc: Pstr_eval(expr, _)}]),
+                                )),
+                            },
+                          },
+                        ],
+                        body,
+                      ),
+                  },
+                  _,
+                ),
+            },
+          ]),
+        ))
+          when {
+            switch (expr.pexp_desc) {
+            | Pexp_let(_)
+            | Pexp_match(_)
+            | Pexp_ifthenelse(_) => false
+            | _ => true
+            };
+          } =>
+        let locals =
+          [(txt, (expr.pexp_loc, evalLocal(locals, expr)))] @ locals;
+        evalExpr(locals, body);
       // let%eval
-      | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_let(Nonrecursive, [{pvb_pat, pvb_expr}], body)}, _)}]))) => {
-        let locals = Args.bindLocal(pvb_pat, evalExpr(locals, pvb_expr)) @ locals;
-        evalExpr(locals, body)
-      }
+      | Pexp_extension((
+          {txt: "eval"},
+          PStr([
+            {
+              pstr_desc:
+                Pstr_eval(
+                  {
+                    pexp_desc:
+                      Pexp_let(Nonrecursive, [{pvb_pat, pvb_expr}], body),
+                  },
+                  _,
+                ),
+            },
+          ]),
+        )) =>
+        let locals =
+          Args.bindLocal(pvb_pat, evalExpr(locals, pvb_expr)) @ locals;
+        evalExpr(locals, body);
       // switch%eval
-      | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval({pexp_desc: Pexp_match(value, cases)}, _)}]))) => {
+      | Pexp_extension((
+          {txt: "eval"},
+          PStr([
+            {
+              pstr_desc: Pstr_eval({pexp_desc: Pexp_match(value, cases)}, _),
+            },
+          ]),
+        )) =>
         let value = evalLocal(locals, value);
-        let rec loop = (cases: list(case)) => switch cases {
+        let rec loop = (cases: list(case)) =>
+          switch (cases) {
           | [] => fail(expr.pexp_loc, "No matching case found")
-          | [{pc_lhs, pc_guard: Some(guard), pc_rhs}, ...rest] => fail(guard.pexp_loc, "case guards not allowed in switch%eval")
-          | [{pc_lhs, pc_rhs}, ...rest] => switch (matchCase(pc_lhs, value, Location.none)) {
+          | [{pc_lhs, pc_guard: Some(guard), pc_rhs}, ...rest] =>
+            fail(guard.pexp_loc, "case guards not allowed in switch%eval")
+          | [{pc_lhs, pc_rhs}, ...rest] =>
+            switch (matchCase(pc_lhs, value, Location.none)) {
             | None => loop(rest)
             | Some(newLocals) => evalExpr(newLocals @ locals, pc_rhs)
-          }
-        };
-        loop(cases)
-      }
+            }
+          };
+        loop(cases);
       // [%eval something]
-      | Pexp_extension(({txt: "eval"}, PStr([{pstr_desc: Pstr_eval(expr, _)}]))) => {
+      | Pexp_extension((
+          {txt: "eval"},
+          PStr([{pstr_desc: Pstr_eval(expr, _)}]),
+        )) =>
         // let locals = Args.bindLocal(pvb_pat, evalExpr(locals, pvb_expr)) @ locals;
         // evalExpr(locals, body)
-        localToExpr(expr, evalLocal(locals, expr), expr.pexp_loc, "expression")
-      }
+        localToExpr(
+          expr,
+          evalLocal(locals, expr),
+          expr.pexp_loc,
+          "expression",
+        )
       | Pexp_ident({txt: Lident(vbl)}) =>
         switch (checkEvalPrefix(vbl)) {
         | None => expr
@@ -640,21 +800,19 @@ let applyExpMacros = (macros, exp) =>
 let applyMapper = macros => {
   ...Ast_mapper.default_mapper,
   structure: (mapper, str) => {
-    let items = List.fold_left(
-      (result, item) => {
-        switch (applyStrMacros(macros, item)) {
-        | None => [item, ...result]
-        | Some(items) => List.rev(items) @ result
-        }
-      },
-      [],
-      str,
-    )
-    |> List.rev;
-    Ast_mapper.default_mapper.structure(
-      mapper,
-      items,
-    );
+    let items =
+      List.fold_left(
+        (result, item) => {
+          switch (applyStrMacros(macros, item)) {
+          | None => [item, ...result]
+          | Some(items) => List.rev(items) @ result
+          }
+        },
+        [],
+        str,
+      )
+      |> List.rev;
+    Ast_mapper.default_mapper.structure(mapper, items);
   },
   pat: (mapper, pat) => {
     let pat = applyPatMacros(macros, pat);
@@ -664,4 +822,4 @@ let applyMapper = macros => {
     let expr = applyExpMacros(macros, expr);
     Ast_mapper.default_mapper.expr(mapper, expr);
   },
-}
+};
