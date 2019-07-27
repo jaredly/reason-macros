@@ -119,9 +119,16 @@ let test = (~only=?, overwrite) => {
 
           // do the actual transform.
           let mapper = Macros.macroMapper([]);
-          let transformed = mapper.structure(mapper, ast);
+          let output = try ({
+            let transformed = mapper.structure(mapper, ast);
+            print(transformed);
+          }) {
+            | Location.Error(error) => {
+              Location.report_error(Format.str_formatter, error);
+              Format.flush_str_formatter()
+            }
+          };
 
-          let output = (print(transformed));
 
 
           switch (Fs.readFile(full ++ ".out")) {

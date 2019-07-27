@@ -15,7 +15,22 @@ type valueType = [
   | `BoolConst(bool)
   | `IntConst(int)
   | `FloatConst(float)
+  | `Map(list((string, valueType)))
 ];
+
+let showType = (t: valueType) => switch t {
+  | `Expr(_) => "expression"
+  | `Pattern(_) => "pattern"
+  | `LongCapIdent(lident) => "long cap identifier (" ++ String.concat(".", Longident.flatten(lident)) ++ ")"
+  | `LongIdent(lident) => "long identifier (" ++ String.concat(".", Longident.flatten(lident)) ++ ")"
+  | `CapIdent(name) => "cap identifier (" ++ name ++ ")"
+  | `Ident(name) => "identifier (" ++ name ++ ")"
+  | `StringConst(str) => "string constant (" ++ str ++ ")"
+  | `BoolConst(bool) => "bool constant (" ++ (bool ? "true" : "false") ++ ")"
+  | `IntConst(int) => "string constant (" ++ string_of_int(int) ++ ")"
+  | `FloatConst(float) => "string constant (" ++ string_of_float(float) ++ ")"
+  | `Map(_) => "map"
+}
 
 type locals = list((string, (Location.t, valueType)));
 

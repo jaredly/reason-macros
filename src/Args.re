@@ -32,8 +32,21 @@ let bindPat = (pattern, pat): locals => switch pattern {
   | _ => fail(pattern.ppat_loc, "Unsupported pattern type")
 };
 
+let digExpression = expr => switch (expr.pexp_desc) {
+  | Pexp_constant(Pconst_string(string, _)) => `StringConst(string)
+  | Pexp_constant(Pconst_integer(int, _)) => `IntConst(int_of_string(int))
+  | Pexp_constant(Pconst_float(float, _)) => `FloatConst(float_of_string(float))
+  | Pexp_construct({txt: Lident("true")}, None) => `BoolConst(true)
+  | Pexp_construct({txt: Lident("false")}, None) => `BoolConst(false)
+  | Pexp_construct({txt: Lident(name)}, None) => `CapIdent(name)
+  | Pexp_construct({txt}, None) => `LongCapIdent(txt)
+  | Pexp_ident({txt: Lident(name)}) => `Ident(name)
+  | Pexp_ident({txt}) => `LongIdent(txt)
+  | _ => `Expr(expr)
+}
+
 let bindLocal = (pattern, expr): locals => switch pattern {
-  | {ppat_desc: Ppat_var({txt})} => [(txt, (expr.pexp_loc, `Expr(expr)))]
+  | {ppat_desc: Ppat_var({txt})} => [(txt, (expr.pexp_loc, digExpression(expr)))]
   | {ppat_desc: Ppat_constraint(
     {ppat_desc: Ppat_var({txt: binding_name})},
     {ptyp_desc: Ptyp_constr({txt: Lident(typ), loc: typloc}, [])}
@@ -72,6 +85,12 @@ let bindLocal = (pattern, expr): locals => switch pattern {
     | "string" => switch expr.pexp_desc {
       | Pexp_constant(Pconst_string(string, fence)) => [(binding_name, (expr.pexp_loc, `StringConst(string)))]
       | _ => fail2(expr.pexp_loc, "Argument must be a string literal", typloc, "Declared here")
+    }
+    | "map" => switch expr.pexp_desc {
+      | Pexp_record(items, None) => [(binding_name, (expr.pexp_loc, `Map(items |> List.map((({Location.txt}, expr)) => (
+        String.concat(".", Longident.flatten(txt)), digExpression(expr)
+      )))))]
+      | _ => fail(expr.pexp_loc, "map must be a record literal")
     }
     | "ident" => switch expr.pexp_desc {
       | Pexp_ident({txt: Lident(name)}) => [(binding_name, (expr.pexp_loc, `Ident(name)))]
