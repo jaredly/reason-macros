@@ -13,7 +13,7 @@ type valueType = [
   | `StringConst(string)
   | `BoolConst(bool)
   | `IntConst(int)
-  | `Option(option(valueType))
+  | `Option(option(locType))
   | `FloatConst(float)
   | `Map(list((string, locType)))
 ] and
@@ -24,7 +24,7 @@ let mkLocType = (loc, t) => Location.mkloc(t, loc);
 
 let rec showType = (t: valueType) =>
   switch (t) {
-  | `Option(Some(v)) => "option(" ++ showType(v) ++ ")"
+  | `Option(Some(v)) => "option(" ++ showType(v.txt) ++ ")"
   | `Option(None) => "option(<empty>)"
   | `Expr(_) => "expression"
   | `Pattern(_) => "pattern"
