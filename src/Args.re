@@ -8,7 +8,7 @@ open MacroTypes;
 let bindPat = (pattern, pat): locals =>
   switch (pattern) {
   | {ppat_desc: Ppat_var({txt})} => [
-      (txt, (pat.ppat_loc, `Pattern(pat))),
+      (txt, Location.mkloc(`Pattern(pat), pat.ppat_loc)),
     ]
   | {
       ppat_desc:
@@ -18,11 +18,11 @@ let bindPat = (pattern, pat): locals =>
         ),
     } =>
     switch (typ) {
-    | "pattern" => [(binding_name, (pat.ppat_loc, `Pattern(pat)))]
+    | "pattern" => [(binding_name, mkLocType(pat.ppat_loc, `Pattern(pat)))]
     | "longCapIdent" =>
       switch (pat.ppat_desc) {
       | Ppat_construct({txt}, None) => [
-          (binding_name, (pat.ppat_loc, `LongCapIdent(txt))),
+          (binding_name, mkLocType(pat.ppat_loc, `LongCapIdent(txt))),
         ]
       | _ =>
         fail(
@@ -33,7 +33,7 @@ let bindPat = (pattern, pat): locals =>
     | "capIdent" =>
       switch (pat.ppat_desc) {
       | Ppat_construct({txt: Lident(name)}, None) => [
-          (binding_name, (pat.ppat_loc, `CapIdent(name))),
+          (binding_name, mkLocType(pat.ppat_loc, `CapIdent(name))),
         ]
       | _ =>
         fail(
@@ -44,7 +44,7 @@ let bindPat = (pattern, pat): locals =>
     | "ident" =>
       switch (pat.ppat_desc) {
       | Ppat_var({txt: name}) => [
-          (binding_name, (pat.ppat_loc, `Ident(name))),
+          (binding_name, mkLocType(pat.ppat_loc, `Ident(name))),
         ]
       | _ =>
         fail(
@@ -77,7 +77,7 @@ let digExpression = expr =>
 let bindLocal = (pattern, expr): locals =>
   switch (pattern) {
   | {ppat_desc: Ppat_var({txt})} => [
-      (txt, (expr.pexp_loc, digExpression(expr))),
+      (txt, mkLocType(expr.pexp_loc, digExpression(expr))),
     ]
   | {
       ppat_desc:
@@ -87,11 +87,11 @@ let bindLocal = (pattern, expr): locals =>
         ),
     } =>
     switch (typ) {
-    | "expression" => [(binding_name, (expr.pexp_loc, `Expr(expr)))]
+    | "expression" => [(binding_name, mkLocType(expr.pexp_loc, `Expr(expr)))]
     | "pattern" =>
       switch (expr.pexp_desc) {
       | Pexp_extension(({txt: "pat"}, PPat(pattern, _))) => [
-          (binding_name, (expr.pexp_loc, `Pattern(pattern))),
+          (binding_name, mkLocType(expr.pexp_loc, `Pattern(pattern))),
         ]
       | _ =>
         fail2(
@@ -104,7 +104,7 @@ let bindLocal = (pattern, expr): locals =>
     | "longCapIdent" =>
       switch (expr.pexp_desc) {
       | Pexp_construct({txt}, None) => [
-          (binding_name, (expr.pexp_loc, `LongCapIdent(txt))),
+          (binding_name, mkLocType(expr.pexp_loc, `LongCapIdent(txt))),
         ]
       | _ =>
         fail2(
@@ -117,7 +117,7 @@ let bindLocal = (pattern, expr): locals =>
     | "capIdent" =>
       switch (expr.pexp_desc) {
       | Pexp_construct({txt: Lident(name)}, None) => [
-          (binding_name, (expr.pexp_loc, `CapIdent(name))),
+          (binding_name, mkLocType(expr.pexp_loc, `CapIdent(name))),
         ]
       | _ =>
         fail2(
@@ -130,7 +130,7 @@ let bindLocal = (pattern, expr): locals =>
     | "longIdent" =>
       switch (expr.pexp_desc) {
       | Pexp_ident({txt}) => [
-          (binding_name, (expr.pexp_loc, `LongIdent(txt))),
+          (binding_name, mkLocType(expr.pexp_loc, `LongIdent(txt))),
         ]
       | _ =>
         fail2(
@@ -143,10 +143,10 @@ let bindLocal = (pattern, expr): locals =>
     | "bool" =>
       switch (expr.pexp_desc) {
       | Pexp_construct({txt: Lident("true")}, None) => [
-          (binding_name, (expr.pexp_loc, `BoolConst(true))),
+          (binding_name, mkLocType(expr.pexp_loc, `BoolConst(true))),
         ]
       | Pexp_construct({txt: Lident("false")}, None) => [
-          (binding_name, (expr.pexp_loc, `BoolConst(false))),
+          (binding_name, mkLocType(expr.pexp_loc, `BoolConst(false))),
         ]
       | _ =>
         fail2(
@@ -159,7 +159,7 @@ let bindLocal = (pattern, expr): locals =>
     | "int" =>
       switch (expr.pexp_desc) {
       | Pexp_constant(Pconst_integer(int, None)) => [
-          (binding_name, (expr.pexp_loc, `IntConst(int_of_string(int)))),
+          (binding_name, mkLocType(expr.pexp_loc, `IntConst(int_of_string(int)))),
         ]
       | _ =>
         fail2(
@@ -172,7 +172,7 @@ let bindLocal = (pattern, expr): locals =>
     | "string" =>
       switch (expr.pexp_desc) {
       | Pexp_constant(Pconst_string(string, fence)) => [
-          (binding_name, (expr.pexp_loc, `StringConst(string))),
+          (binding_name, mkLocType(expr.pexp_loc, `StringConst(string))),
         ]
       | _ =>
         fail2(
@@ -187,14 +187,14 @@ let bindLocal = (pattern, expr): locals =>
       | Pexp_record(items, None) => [
           (
             binding_name,
-            (
+            mkLocType(
               expr.pexp_loc,
               `Map(
                 items
                 |> List.map((({Location.txt}, expr)) =>
                      (
                        String.concat(".", Longident.flatten(txt)),
-                       digExpression(expr),
+                       mkLocType(expr.pexp_loc, digExpression(expr)),
                      )
                    ),
               ),
@@ -206,7 +206,7 @@ let bindLocal = (pattern, expr): locals =>
     | "ident" =>
       switch (expr.pexp_desc) {
       | Pexp_ident({txt: Lident(name)}) => [
-          (binding_name, (expr.pexp_loc, `Ident(name))),
+          (binding_name, mkLocType(expr.pexp_loc, `Ident(name))),
         ]
       | _ =>
         fail2(

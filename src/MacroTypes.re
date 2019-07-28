@@ -15,8 +15,12 @@ type valueType = [
   | `IntConst(int)
   | `Option(option(valueType))
   | `FloatConst(float)
-  | `Map(list((string, valueType)))
-];
+  | `Map(list((string, locType)))
+] and
+
+locType = Location.loc(valueType);
+
+let mkLocType = (loc, t) => Location.mkloc(t, loc);
 
 let rec showType = (t: valueType) =>
   switch (t) {
@@ -42,7 +46,7 @@ let rec showType = (t: valueType) =>
   | `Map(_) => "map"
   };
 
-type locals = list((string, (Location.t, valueType)));
+type locals = list((string, locType));
 
 type macro =
   | Let(string, pattern, pattern, pattern, expression)

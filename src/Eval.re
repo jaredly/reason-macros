@@ -66,7 +66,7 @@ let checkEvalPrefix = txt => {
 
 let evalString = (locals: locals, string, loc) => {
   Platform.interpolateString(string, text => {
-    switch (List.assoc(text, locals) |> snd) {
+    switch (List.assoc(text, locals).txt) {
     | exception Not_found =>
       fail(loc, "Interpolation variable " ++ text ++ " not found")
     | `Ident(name) => name
@@ -90,11 +90,11 @@ let isCapitalized = txt =>
   txt != ""
   && String.lowercase_ascii(String.sub(txt, 0, 1)) != String.sub(txt, 0, 1);
 
-let evalCapIdent = (locals, txt, loc) =>
+let evalCapIdent = (locals: locals, txt, loc) =>
   switch (checkEvalPrefix(txt)) {
   | None => txt
   | Some(vbl) =>
-    switch (List.assoc(vbl, locals) |> snd) {
+    switch (List.assoc(vbl, locals).txt) {
     | exception Not_found =>
       fail(loc, "No matching macro variable for " ++ vbl)
     | `CapIdent(name) => name
@@ -110,7 +110,7 @@ let evalIdent = (locals, txt, loc) =>
   switch (checkEvalPrefix(txt)) {
   | None => txt
   | Some(vbl) =>
-    switch (List.assoc(vbl, locals) |> snd) {
+    switch (List.assoc(vbl, locals).Location.txt) {
     | exception Not_found =>
       fail(loc, "No matching macro variable for " ++ vbl)
     | `Ident(name) => name
@@ -119,12 +119,12 @@ let evalIdent = (locals, txt, loc) =>
     }
   };
 
-let evalIdentTxt = (locals, txt, loc) => {
+let evalIdentTxt = (locals: locals, txt, loc) => {
   switch (checkEvalPrefix(txt)) {
   | None => None
   | Some(vbl) =>
     Some(
-      switch (List.assoc(vbl, locals) |> snd) {
+      switch (List.assoc(vbl, locals).txt) {
       | exception Not_found =>
         fail(loc, "No matching local for eval variable " ++ vbl)
       | `Ident(name) =>
@@ -166,7 +166,7 @@ let rec joinLidents = (one, two, loc) =>
   | _ => fail(loc, "Cannot join a lident thats an apply")
   };
 
-let rec evalLongIdent = (locals, lident, loc) => {
+let rec evalLongIdent = (locals: locals, lident, loc) => {
   switch (lident) {
   | Lident(name) =>
     switch (evalIdentTxt(locals, name, loc)) {
@@ -272,13 +272,13 @@ let localToPattern = (pat, local: valueType, loc, vbl) => {
   };
 };
 
-let rec evalLocal = (locals, expr): valueType => {
+let rec evalLocal = (locals: locals, expr): valueType => {
   switch (expr.pexp_desc) {
   | Pexp_ident({txt: Lident(name)}) =>
     switch (List.assoc(name, locals)) {
     | exception Not_found =>
       fail(expr.pexp_loc, "Undefined macro variable: " ++ name)
-    | (loc, value) => value
+    | res => res.txt
     }
   | Pexp_constant(Pconst_string(string, _)) =>
     `StringConst(evalString(locals, string, expr.pexp_loc))
@@ -354,7 +354,7 @@ let rec evalLocal = (locals, expr): valueType => {
     | (`Map(items), `StringConst(attr)) =>
       switch (List.assoc(attr, items)) {
       | exception Not_found => `Option(None)
-      | v => `Option(Some(v))
+      | v => `Option(Some(v.txt))
       }
     | (one, two) =>
       fail(
@@ -367,6 +367,18 @@ let rec evalLocal = (locals, expr): valueType => {
       )
     }
 
+  // | Pexp_apply({pexp_desc: Pexp_ident({txt: Lident("file")})}, [(_, arg)]) =>
+  //   switch (evalLocal(locals, arg)) {
+  //   | `StringConst(name) =>
+  //     switch (Sys.getenv_opt(name)) {
+  //     | None => `StringConst("")
+  //     | Some(v) => `StringConst(v)
+  //     }
+  //   | _ => fail(expr.pexp_loc, "env() must be called with a string")
+  //   }
+
+
+  // Records
   | Pexp_extension((
       {txt: "bs.obj"},
       PStr([
@@ -382,7 +394,8 @@ let rec evalLocal = (locals, expr): valueType => {
       |> List.map((({Location.txt}, expr)) =>
            (
              Longident.flatten(txt) |> String.concat("."),
-             evalLocal(locals, expr),
+             // STOPSHIP
+             Location.mknoloc(evalLocal(locals, expr)),
            )
          ),
     )
@@ -398,9 +411,9 @@ let evalCondition = (locals, condition) => {
   };
 };
 
-let rec matchCase = (pattern, value: valueType, loc) =>
+let rec matchCase = (pattern, value: valueType, loc): option(locals) =>
   switch (pattern.ppat_desc, value) {
-  | (Ppat_var({txt}), _) => Some([(txt, (loc, value))])
+  | (Ppat_var({txt}), _) => Some([(txt, mkLocType(loc, value))])
   | (Ppat_tuple([one]), _) => matchCase(one, value, loc)
   | (Ppat_constant(Pconst_string(string, _)), `StringConst(value)) =>
     string == value ? Some([]) : None
@@ -549,7 +562,7 @@ let rec evalMapper = (locals: locals) => {
             };
           } =>
         let locals =
-          [(txt, (expr.pexp_loc, evalLocal(locals, expr)))] @ locals;
+          [(txt, mkLocType(expr.pexp_loc, evalLocal(locals, expr)))] @ locals;
         evalExpr(locals, body);
       // let%eval
       | Pexp_extension((
@@ -612,7 +625,7 @@ let rec evalMapper = (locals: locals) => {
           switch (List.assoc(vbl, locals)) {
           | exception Not_found =>
             fail(expr.pexp_loc, "Variable " ++ vbl ++ " not found")
-          | (loc, local) => localToExpr(expr, local, loc, vbl)
+          | result => localToExpr(expr, result.txt, result.loc, vbl)
           }
         }
       | Pexp_ident(ident) =>
@@ -666,7 +679,7 @@ let rec evalMapper = (locals: locals) => {
         switch (List.assoc(vbl, locals)) {
         | exception Not_found =>
           fail(pat.ppat_loc, "Variable " ++ vbl ++ " not found")
-        | (loc, local) => localToPattern(pat, local, loc, vbl)
+        | result => localToPattern(pat, result.txt, result.loc, vbl)
         }
       }
     | Ppat_construct(ident, args) =>

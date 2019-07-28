@@ -15,7 +15,13 @@
   | _ => None
   };
 
-  "yes";
+  Js.log("Missing");
+
+  Js.log("Found yes");
+
+  Js.log("Found yes");
+
+  Some("yes");
 };
 
 switch (expr) {
