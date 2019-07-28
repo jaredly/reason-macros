@@ -1,0 +1,2 @@
+
+let%macro shared = (name: string) => eval__name ++ "yeah"

@@ -1,0 +1,10 @@
+(executable
+  (public_name Awesomer)
+  ; (preprocess (pps Main -- --shared-macros "%{ocaml_bin}--/SharedMacros.re" ))
+  )
+
+(rule
+ (target Awesomer.re)
+ (deps   Awesome.re)
+ (action (with-stdout-to %{target}
+          (chdir %{workspace_root} (run Main "%{target}")))))

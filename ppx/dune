@@ -1,0 +1,5 @@
+(library
+  (name Main)
+  (flags :standard -w -9)
+  (libraries compiler-libs ocaml-migrate-parsetree str macros platform_native unix)
+  (kind ppx_rewriter))
