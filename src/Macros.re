@@ -5,7 +5,10 @@ open Parsetree;
 
 open Ast_mapper;
 
-let collect = (str, collected) => {
+open Location;
+
+// Collect macros for later application
+let process = (str, collected) => {
   let (items, macros, _apply) =
     str
     |> List.fold_left(
@@ -38,10 +41,12 @@ let collect = (str, collected) => {
   (items, macros);
 };
 
+let collect = ast => process(ast, []) |> snd;
+
 let macroMapper = collected => {
   ...Ast_mapper.default_mapper,
   structure: (_mapper, str) => {
-    let (items, _macros) = collect(str, collected);
+    let (items, _macros) = process(str, collected);
     items;
   },
 };

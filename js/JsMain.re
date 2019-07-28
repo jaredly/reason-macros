@@ -18,7 +18,7 @@ let print = ast => {
 
 Js.export("transform", Js.wrap_callback((macro_code, input) => {
   let macroAst = parse(macro_code);
-  let (_, macros) = Macros.collect(macroAst, []);
+  let macros = Macros.collect(macroAst);
   let ast = parse(input);
 
   // do the actual transform.

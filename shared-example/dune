@@ -1,0 +1,5 @@
+(library
+  (name Shared)
+  (libraries Main)
+  (preprocess (pps ppxlib.metaquot))
+  (kind ppx_rewriter))

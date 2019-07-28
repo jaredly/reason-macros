@@ -26,6 +26,7 @@
     "@opam/dune": "*",
     "@opam/ocaml-migrate-parsetree": "*",
     "@opam/js_of_ocaml-compiler": "*",
+    "@opam/ppxlib": "*",
     "@opam/js_of_ocaml": "*",
     "belt": "jaredly/belt",
     "@esy-ocaml/reason": "*",
