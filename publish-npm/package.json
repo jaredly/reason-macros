@@ -1,0 +1,25 @@
+{
+  "name": "reason-macros-bin",
+  "version": "1.0.0-alpha.1",
+  "description": "Template-based macros for Reason/OCaml!",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jaredly/reason-macros.git"
+  },
+  "keywords": [
+    "reason",
+    "macros",
+    "bucklescript",
+    "bs-platform"
+  ],
+  "author": "Jared Forsyth <jared@jaredforsyth.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jaredly/reason-macros/issues"
+  },
+  "homepage": "https://github.com/jaredly/reason-macros#readme"
+}
