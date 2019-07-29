@@ -1,4 +1,4 @@
 (executable
-  (public_name ppx)
+  (public_name macros)
   (name BsPpx)
   (libraries Main compiler-libs))

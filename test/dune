@@ -1,5 +1,5 @@
 (executable
-  (public_name macros)
+  (public_name test-runner)
   (name Main)
   (libraries macros platform_native reason unix)
 )
