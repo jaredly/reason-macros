@@ -4,7 +4,8 @@
     "number": "-6+7-26-27-32..40-28-44-45",
     "error": "+8"
   },
-  "ppx-flags": ["../_esy/default/build/install/default/bin/ppx --some-arg"],
+  "ppx-flags": ["./ppx.sh"],
+  "// ppx-flags": ["../_esy/default/build/install/default/bin/ppx --some-arg"],
   "sources": [
     {"dir": "src"}
   ],
