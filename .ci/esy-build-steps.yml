@@ -10,7 +10,7 @@ steps:
   # Run tests or any additional steps here
   - script: esy x test-runner test
   - bash: mkdir -p macros-release
-  - bash: cp _esy/default/build/default/bs-ppx/BsPpx.exe macros-release/macros.exe
+  - bash: cp _build/default/bs-ppx/BsPpx.exe macros-release/macros.exe
   - task: PublishBuildArtifacts@1
     displayName: 'Upload binary'
     inputs:

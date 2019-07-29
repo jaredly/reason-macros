@@ -33,6 +33,7 @@
     "ocaml": "4.07"
   },
   "esy": {
-    "build": "dune build -p #{self.name}"
+    "build": "dune build -p #{self.name}",
+    "buildsInSource": "_build"
   }
 }
