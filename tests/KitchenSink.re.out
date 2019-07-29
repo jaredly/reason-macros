@@ -33,5 +33,3 @@ switch (expr) {
 };
 
 print_endline("Hello world");
-
-let editor = "nvim";

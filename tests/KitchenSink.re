@@ -51,4 +51,5 @@ switch expr {
 
 [%dev print_endline("Hello world")];
 
-let editor = [%env "EDITOR"];
+// This will be different on different machines folks
+// let editor = [%env "EDITOR"];

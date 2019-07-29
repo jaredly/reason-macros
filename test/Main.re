@@ -4,11 +4,6 @@ module BackConverter = Migrate_parsetree.Convert(Migrate_parsetree.OCaml_407)(Mi
 
 module Fs = {
 
-let maybeStat = (path) =>
-  try (Some(Unix.stat(path))) {
-  | Unix.Unix_error(Unix.ENOENT, _, _) => None
-  };
-
 let writeFile = (path, contents) => {
   try {
     let out = open_out(path);
@@ -19,6 +14,12 @@ let writeFile = (path, contents) => {
     | _ => false
   }
 };
+
+let maybeStat = (path) =>
+  try (Some(Unix.stat(path))) {
+  | Unix.Unix_error(Unix.ENOENT, _, _) => None
+  };
+
 let readFile = path => {
   switch (maybeStat(path)) {
   | Some({Unix.st_kind: Unix.S_REG}) =>
@@ -139,13 +140,13 @@ let test = (~only=?, overwrite) => {
                   Fs.writeFile(full ++ ".out", output) |> ignore;
                 } else {
                   print_endline("Failure! Output for " ++ full ++ " was different!");
-                  if (only != None) {
-                    print_endline("\n---- got ----\n");
-                    print_endline(output);
-                    print_endline("---- expected ----\n");
-                    print_endline(current)
-                    print_newline();
-                  }
+                  // if (only != None) {
+                  print_endline("\n---- got ----\n");
+                  print_endline(output);
+                  print_endline("---- expected ----\n");
+                  print_endline(current)
+                  print_newline();
+                  // }
                   Fs.writeFile(full ++ ".out.new", output) |> ignore;
                 }
                 failed := failed^ + 1;
