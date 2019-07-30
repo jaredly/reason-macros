@@ -1,4 +1,5 @@
 (library
   (name platform_js)
+  (public_name macros.platform_js)
   (libraries js_of_ocaml)
   (implements platform))

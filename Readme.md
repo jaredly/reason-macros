@@ -1,6 +1,136 @@
-# [%macro]
+# reason-macros
+Template-based macros fo Reason/OCaml!
 
-# !IMPORTANT! This Readme is very disorganized and wrong.
+## Try it out for yourself
+
+https://astexplorer-macros.surge.sh , switch the language to "Reason" and toggle the "Transform" to on.
+
+## Basic examples
+
+```re
+let%macro.toplevel ionicon = (name: capIdent, iconName: capIdent) => {
+  [%str // toplevel
+    module Eval__name = {
+      let name = "$eval{name}";
+      [@bs.module] [@react.component]
+      external make:
+        (
+          ~className: string=?,
+          ~fontSize: string=?,
+          ~color: string=?,
+          ~onClick: 'event => unit=?
+        ) =>
+        string =
+        "react-ionicons/lib/$eval{iconName}";
+    }
+  ];
+};
+
+[%%ionicon (Link, IosLink)];
+[%%ionicon (Download, MdDownload)];
+```
+becomes
+```re
+module Link = {
+  let name = "Link";
+  [@react.component]
+  external make:
+    (
+      ~className: string=?,
+      ~fontSize: string=?,
+      ~color: string=?,
+      ~onClick: 'event => unit=?
+    ) =>
+    string =
+    "react-ionicons/lib/IosLink"
+};
+module Download = {
+  let name = "Download";
+  [@react.component]
+  external make:
+    (
+      ~className: string=?,
+      ~fontSize: string=?,
+      ~color: string=?,
+      ~onClick: 'event => unit=?
+    ) =>
+    string =
+    "react-ionicons/lib/MdDownload"
+};
+```
+
+```re
+let%macro.let opt = (pattern, value, continuation) =>
+  switch (eval__value) {
+  | None => None
+  | Some(eval__pattern) => eval__continuation
+  };
+
+let doSomethingWithOptionals = () => {
+  let%opt who = Some("world");
+  let%opt greeting = Some("Hello");
+  Some(greeting ++ "" ++ who);
+};
+```
+becomes
+```re
+let doSomethingWithOptionals = () =>
+  switch (Some("world")) {
+  | None => None
+  | Some(who) =>
+    switch (Some("Hello")) {
+    | None => None
+    | Some(greeting) => Some(greeting ++ "" ++ who)
+    }
+  };
+```
+
+```re
+let%macro.let async = (pattern, value, continuation) => {
+  Js.Promise.then_(
+    eval__pattern => eval__continuation,
+    eval__value
+  );
+};
+
+let doSomethingAsync = () => {
+  let%async text = fetch("Hello");
+  let%async more = text->json;
+  Js.Promise.resolve(more);
+};
+```
+becomes
+```re
+let doSomethingAsync = () =>
+  Js.Promise.then_(
+    text => Js.Promise.then_(more => Js.Promise.resolve(more), json(text)),
+    fetch("Hello"),
+  );
+```
+
+## Installation
+
+### Bucklescript
+
+`npm i reason-macros-bin`
+
+```
+  "ppx-flags": "reason-macros-bin/ppx.js"
+```
+
+### esy + dune
+
+add to package.json / esy.json
+`"reason-macros": "git+https://github.com/jaredly/reason-macros"`
+
+and then in a `dune` file
+
+```
+  (preprocess (pps macros.ppx))
+```
+
+
+# !IMPORTANT! The rest of this Readme is very disorganized and wrong.
 
 
 User-defined macros.
