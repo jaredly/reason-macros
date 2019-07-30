@@ -1,5 +1,8 @@
 # [%macro]
 
+# !IMPORTANT! This Readme is very disorganized and wrong.
+
+
 User-defined macros.
 Without ppxs.
 
