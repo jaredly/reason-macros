@@ -1,5 +1,5 @@
 # reason-macros
-Template-based macros fo Reason/OCaml!
+Template-based macros for Reason/OCaml!
 
 ## Try it out for yourself
 
