@@ -5,6 +5,7 @@
     "error": "+8"
   },
   "ppx-flags": ["./ppx.sh"],
+  "// ppx-flags": ["reason-macros-bin/ppx.js"],
   "// ppx-flags": ["../_esy/default/build/install/default/bin/ppx --some-arg"],
   "sources": [
     {"dir": "src"}

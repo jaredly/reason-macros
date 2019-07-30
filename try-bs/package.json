@@ -4,6 +4,7 @@
     "clean": "bsb -clean-world"
   },
   "dependencies": {
-    "bs-platform": "5.0.4"
+    "bs-platform": "5.0.4",
+    "reason-macros-bin": "file:../publish-npm"
   }
 }
