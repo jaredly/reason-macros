@@ -115,7 +115,7 @@ let doSomethingAsync = () =>
 `npm i reason-macros-bin`
 
 ```
-  "ppx-flags": "reason-macros-bin/ppx.js"
+  "ppx-flags": ["reason-macros-bin/ppx.js"]
 ```
 
 ### esy + dune
