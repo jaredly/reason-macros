@@ -20,7 +20,7 @@ let%macro.toplevel ionicon = (name: capIdent, iconName: capIdent) => {
           ~color: string=?,
           ~onClick: 'event => unit=?
         ) =>
-        string =
+        React.element =
         "react-ionicons/lib/$eval{iconName}";
     }
   ];
@@ -41,7 +41,7 @@ module Link = {
       ~color: string=?,
       ~onClick: 'event => unit=?
     ) =>
-    string =
+    React.element =
     "react-ionicons/lib/IosLink"
 };
 module Download = {
@@ -54,7 +54,7 @@ module Download = {
       ~color: string=?,
       ~onClick: 'event => unit=?
     ) =>
-    string =
+    React.element =
     "react-ionicons/lib/MdDownload"
 };
 ```
